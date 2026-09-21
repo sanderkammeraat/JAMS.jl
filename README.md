@@ -1,6 +1,14 @@
-# JAMS: Jamming and Active Matter Simulations in Julia
 
+# JAMS: Jamming and Active Matter Simulations in Julia
 [![Build Status](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+
+<p align="center">
+<img width="435" height="161" alt="JAMS_logo" src="https://github.com/user-attachments/assets/63f22d94-1de9-4556-a768-fd16407add82" />
+</p>
+
+
 
 ## Description
 This is a Julia package to simulate (Soft) Active Matter. Its design is modular, so that you can mix and match different forces, particles and fields.
