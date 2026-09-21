@@ -2,7 +2,8 @@
 # JAMS: Jamming and Active Matter Simulations in Julia
 [![Build Status](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
+[![Documentation Status](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/documentation.yml/badge.svg)](https://github.com/sanderkammeraat/JAMS.jl/actions/workflows/documentation.yml)
+[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://sanderkammeraat.github.io/JAMS.jl/dev/)
 
 <p align="center">
 <img width="435" height="161" alt="JAMS_logo" src="https://github.com/user-attachments/assets/63f22d94-1de9-4556-a768-fd16407add82" />
