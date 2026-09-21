@@ -11,8 +11,8 @@
 
 
 ## Documentation
-Check out the full [JAMS.jl Documentation](https://sanderkammeraat.github.io/JAMS.jl
-The documentation is still actively developed.
+Check out [JAMS.jl Documentation](https://sanderkammeraat.github.io/JAMS.jl). 
+Note: the documentation is still in a (very) early stage.
 
 
 ## Description
