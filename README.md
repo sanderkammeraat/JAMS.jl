@@ -10,6 +10,10 @@
 </p>
 
 
+## Documentation
+Check out the full [JAMS.jl Documentation](https://sanderkammeraat.github.io/JAMS.jl
+The documentation is still actively developed.
+
 
 ## Description
 This is a Julia package to simulate (Soft) Active Matter. Its design is modular, so that you can mix and match different forces, particles and fields.
