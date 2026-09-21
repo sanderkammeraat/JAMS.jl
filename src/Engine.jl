@@ -117,26 +117,7 @@ function minimal_image_difference_component(linear_difference,linear_size, syste
     return linear_difference
 end
 
-# """
-# Description of the physical system in JAMs.
 
-# sizes: Array containing the linear size of the system. 
-
-# initial_particle_state: Array containing (struct instances of) particles
-
-# initial_field_state: Array containing (struct instances of) fields
-
-# forces: Array containing (struct instances of) forces 
-
-# field_updaters: Array containing (struct instances of) forces/update rules acting on the field
-
-# dofevolvers: Array containing (struct instances of) evolvers that update the degrees of freedom of particles and fields
-
-# periodic: Bool describing whether the system is spatially periodic of the system sizes.
-
-# rcut_pair_global: Float setting the cutoff of all pair_forces and is used to generate cell lists.
-
-# """
 export System
 @kwdef struct System{Tips, Tifs, Tfor , Tfu , Tdof}
 
@@ -317,7 +298,49 @@ end
 
 
 export Euler_integrator 
-function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_functions=nothing, save_folder_path=nothing, save_tag=nothing, Tplot=nothing, fps=30, plot_functions=nothing,plotdim=nothing,record_folder_path=nothing,crf=23,res=nothing,format="mp4",sbs=false)
+"""
+    Euler_integrator(system, dt, t_stop; kwargs...) -> SIM
+Evolves the initial state defined in system according to the forces and DOFevolvers in it, using the Euler(-Maruyama) algorithm.
+Returns SIM struct with final states for chaining simulations.
+
+# Arguments
+
+- `system`: Instance of System struct
+- `dt`: Integration time step size
+- `t_stop`: Integration end time
+
+# Keywords
+
+- `seed`: master seed for reproducibility
+    (**Default**: `nothing`)
+- `Tsave`: Save every Tsave dt-steps
+    (**Default**: `nothing`)
+- `save_functions`: Tuple of functions to save data
+    (**Default**: `nothing`)
+- `save_folder_path`: Folder path to save data (need not exist)
+    (**Default**: `nothing`)
+- `save_tag`: Add custom name to save file name, so that it becomes "save_tag.raw_data.h5"
+    (**Default**: `nothing`)
+- `Tplot`: Plot every Tplot dt-steps
+    (**Default**: `nothing`)
+- `fps`: Default frames per second for rendering of live plotting
+    (**Default**: `30`)
+- `plot_functions`: Tuple of plot function to live plot
+    (**Default**: `nothing`)
+- `plotdim`: Default plotting dimension, change to 3 for 3d plot
+    (**Default**: `2`)
+- `record_folder_path`: Folder path to save live recording in, need not exist
+    (**Default**: `nothing`)
+- `crf`: Default compression rate for saving the live recording
+    (**Default**: `23`)
+- `res`: Pixel resoluation of plotting, e.g. (1000,1000)
+    (**Default**: `nothing`)
+- `format`: Default format for saving live recording
+    (**Default**: `"mp4"`)
+- `sbs`: Set to true for side-by-side plotting, to be used i.c.m. with plotdim=3
+    (**Default**: `false`)
+"""
+function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_functions=nothing, save_folder_path=nothing, save_tag=nothing, Tplot=nothing, fps=30, plot_functions=nothing,plotdim=2,record_folder_path=nothing,crf=23,res=nothing,format="mp4",sbs=false)
 
 
     integration_tax = collect(0:dt:t_stop)
