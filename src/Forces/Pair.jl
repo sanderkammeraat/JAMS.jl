@@ -1,5 +1,4 @@
 
-export repulsive_soft_disk
 @kwdef struct repulsive_soft_disk{T1} <: PairForce
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
@@ -16,6 +15,40 @@ function contribute_pair_force!(i,p_i, p_j , current_particle_state, dx, dxn, t,
     end
 
 end
+
+
+
+@kwdef struct morse{T1, T2}<:PairForce
+    ontypes::Union{Int64,Vector{Int64}}
+    Dearray::T1
+    aarray::T2
+    
+end
+
+
+function contribute_pair_force!(i,p_i, p_j, current_particle_state, dx, dxn, t, dt,rngs_particles, system, force::morse)
+
+    if p_i.type[1] in force.ontypes && p_j.type[1] in force.ontypes
+        re = p_i.R[1]+p_j.R[1]
+
+        a = force.aarray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
+        De = force.Dearray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
+
+       current_particle_state.f[i]+= -2 * De*a*( exp(-2a*(dxn-re)) - exp(-a*(dxn-re)) ) * dx/dxn
+
+    end
+    return p_i
+
+end
+
+
+
+
+
+
+
+
+
 function get_param_ind(force_types, particle_type)
     return findfirst(isequal(particle_type),force_types)
 end
