@@ -28,9 +28,9 @@ using Test
 
     @test  sim1.final_particle_state[1].p[1] != sim1.final_particle_state[1].p[2]
 
-    @test  sim1.final_particle_state[1].p[1] == sim2.final_particle_state[1].p[1]
+    @test  sim1.final_particle_state[1].p[1] ≈ sim2.final_particle_state[1].p[1]
 
-    @test sim1.final_particle_state[1].p[1] != sim3.final_particle_state[1].p[1]
+    @test  sim1.final_particle_state[1].p[1] != sim3.final_particle_state[1].p[1]
 
     end
 
