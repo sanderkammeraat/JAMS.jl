@@ -135,6 +135,7 @@ struct SIM{T1, T2, T3, T4}
     dt::T3
     t_stop::T4
     system::System #Note that system will contain the initial states
+    finished::Bool
 end
 
 
@@ -525,7 +526,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
                 if !isnothing(Tsave)
                     jldopen(joinpath(save_folder_path, JAMs_final_state_file_name),"a+",iotype=IOStream ) do JAMs_file
 
-                        JAMs_file["SIM"]=SIM(final_particle_state, final_field_state, deepcopy(dt), deepcopy(t_stop), deepcopy(system));
+                        JAMs_file["SIM"]=SIM(final_particle_state, final_field_state, deepcopy(dt), deepcopy(t_stop), deepcopy(system),true);
                     end
                 end
 
@@ -581,7 +582,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
 
         end
 
-        return SIM(deepcopy(final_particle_state), deepcopy(final_field_state), deepcopy(dt), deepcopy(t_stop), deepcopy(system));
+        return SIM(deepcopy(final_particle_state), deepcopy(final_field_state), deepcopy(dt), deepcopy(t_stop), deepcopy(system),true);
 
     catch e
 
