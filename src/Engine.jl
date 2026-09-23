@@ -1,12 +1,12 @@
-@inline function periodic!(i,p_i,current_particle_state, systemsizes)
+@inline function periodic!(p_i, systemsizes)
 
-    current_particle_state.x[i] = mod.(current_particle_state.x[i] .+ systemsizes ./ 2, systemsizes) .- systemsizes ./ 2
-    return current_particle_state
+    p_i.x = mod.(p_i.x .+ systemsizes ./ 2, systemsizes) .- systemsizes ./ 2
+    return p_i
 end
 
-@inline function periodic!(i,p_i::Particles.RigidBody,current_particle_state, systemsizes)
+@inline function periodic!(p_i::Particles.RigidBody, systemsizes)
 
-current_particle_state.x[i] = mod.(current_particle_state.x[i] .+ systemsizes ./ 2, systemsizes) .- systemsizes ./ 2
+p_i.x = mod.(p_i.x .+ systemsizes ./ 2, systemsizes) .- systemsizes ./ 2
     #Deliberately not updating the extend points
     # for j=1:size(p_i.xe)[1]
     #     for (i, xi) in pairs(p_i.xe[j,:])
@@ -19,26 +19,26 @@ current_particle_state.x[i] = mod.(current_particle_state.x[i] .+ systemsizes ./
     #     end
     
     # end    
-    return current_particle_state
+    return p_i
 end
 
 #Initialize unwrapped coordinates to save the user the hassle to set equal to the initial wrapped coordinates
-function init_unwrap!(i,current_particle_state, t)
+function init_unwrap!(p_i, t)
 
     if t==0
-        current_particle_state.xuw[i]= copy(current_particle_state.x[i])
+        p_i.xuw= copy(p_i.x)
     end
 
-    return current_particle_state
+    return p_i
 end
 #Initialize forces and torques to zero, for easy chaining of sims
-function init_f_T!(i,current_particle_state, t)
+function init_f_T!(p_i, t)
 
     if t==0
-        current_particle_state.f[i]*=0.
-        current_particle_state.T[i]*=0.
+        p_i.f*=0.
+        p_i.T*=0.
     end
-    return current_particle_state
+    return p_i
 end
 
 
@@ -75,22 +75,6 @@ function minimal_image_closest_field_center(x, bin_centers, lbin)
 
     return  SVector{3, Int64}(x_ind, y_ind, z_ind)
 
-end
-#dx is assumed to be pre-allocated
-function minimal_image_difference_deprecated!(dx,xi, xj, system_sizes, system_Periodic)
-    
-    @inbounds for n in eachindex(xi)
-        dx[n]=xj[n]-xi[n]
-        if system_Periodic
-            if dx[n]>system_sizes[n]/2
-                dx[n]-=system_sizes[n]
-            end
-            if dx[n]<=-system_sizes[n]/2
-                dx[n]+=system_sizes[n]
-            end
-        end 
-    end
-    return dx
 end
 
 
@@ -152,24 +136,7 @@ struct SIM{T1, T2, T3, T4}
     t_stop::T4
     system::System #Note that system will contain the initial states
 end
-function save_raw_force_data!(file, preamble, force)
 
-    force_name = string(nameof(typeof(force)))
-
-    field_names = fieldnames(typeof(force))
-
-    for field_name in field_names
-
-        name = string(field_name)
-        val = getfield(force, field_name)
-
-
-        file[preamble*force_name*"/"*name] = val
-
-    end
-
-    return file
-end
 
 function save_raw_obj_data!(file_group, obj)
 
@@ -184,8 +151,10 @@ function save_raw_obj_data!(file_group, obj)
         name = string(field_name)
         val = getfield(obj, field_name)
 
-        if typeof(val)==Bool
-            obj_group[name] =string( val)
+        if val isa Bool
+            obj_group[name] = string(val)
+        elseif val isa StaticArray
+            obj_group[name] = collect(val)
         else
             obj_group[name] = val
         end
@@ -196,7 +165,8 @@ function save_raw_obj_data!(file_group, obj)
 end
 
 
-function save_raw_metadata!(file, system, integration_tax,dt,t_stop,Tsave,save_tax, master_seed)
+function save_raw_metadata!(file, system,external_forces,pair_forces, field_forces,local_dofevolvers, global_dofevolvers, field_dofevolvers,
+     integration_tax,dt,t_stop,Tsave,save_tax, master_seed)
 
     create_group(file, "system")
 
@@ -363,6 +333,50 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
         master_seed = seed
         Random.seed!(seed)
     end
+    
+
+
+
+    if system.Periodic==false
+        @warn ("JAMs: System is set to non-periodic: you should make sure particles always stay in system sizes for correctly working cell lists. The program will catch this by throwing an error if a particle is detected outside the box.")
+    end
+
+    system, cells,cell_bin_centers,stencils, lbins = construct_cell_lists!(system)
+
+    external_forces = Tuple(force for force in system.forces if isa(force, Forces.ExternalForce))
+    pair_forces = Tuple(force for force in system.forces if isa(force, Forces.PairForce))
+
+    field_forces = Tuple(force for force in system.forces if isa(force, Forces.FieldForce))
+
+
+    Next = length(external_forces)
+    Npair = length(pair_forces)
+
+    Nfield = length(field_forces)
+
+    Nfieldu = length(system.field_updaters)
+
+    local_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.LocalDOFevolver))
+
+    global_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.GlobalDOFevolver))
+
+    field_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.FieldDOFevolver))
+
+    
+
+    current_particle_state = deepcopy(system.initial_particle_state)
+    current_field_state = deepcopy(system.initial_field_state)
+
+    
+    final_particle_state = deepcopy(system.initial_particle_state)
+    final_field_state = deepcopy(system.initial_field_state)
+
+    rngs_fields = [Xoshiro(master_seed+i) for i in eachindex(current_field_state)]
+
+    #Assuming number of fields stay constant
+    rngs_particles = [Xoshiro(length(current_field_state)+master_seed+i) for i in eachindex(current_particle_state)]
+
+
     if !isnothing(Tsave)
         save_nax = [n for n in eachindex(integration_tax) if (n-1)%Tsave==0]
         save_tax = [ integration_tax[n] for n in eachindex(integration_tax) if (n-1)%Tsave==0 ]
@@ -430,56 +444,16 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
         #Store similar info in raw_data container
         h5open(joinpath(save_folder_path, raw_data_file_name),"cw") do raw_data_file
 
-            save_raw_metadata!(raw_data_file, system, integration_tax,dt, t_stop, Tsave,save_tax,master_seed)
+            save_raw_metadata!(raw_data_file, system,external_forces,pair_forces, field_forces,local_dofevolvers, global_dofevolvers, field_dofevolvers, integration_tax,dt, t_stop, Tsave,save_tax,master_seed)
 
         end
    
     end
-
     if !isnothing(Tsave)
         n_final_save = save_nax[end]
     else
         n_final_save = length(integration_tax)
     end
-
-    if system.Periodic==false
-        @warn ("JAMs: System is set to non-periodic: you should make sure particles always stay in system sizes for correctly working cell lists. The program will catch this by throwing an error if a particle is detected outside the box.")
-    end
-
-    system, cells,cell_bin_centers,stencils, lbins = construct_cell_lists!(system)
-
-    external_forces = Tuple(force for force in system.forces if isa(force, Forces.ExternalForce))
-    pair_forces = Tuple(force for force in system.forces if isa(force, Forces.PairForce))
-
-    field_forces = Tuple(force for force in system.forces if isa(force, Forces.FieldForce))
-
-
-    Next = length(external_forces)
-    Npair = length(pair_forces)
-
-    Nfield = length(field_forces)
-
-    Nfieldu = length(system.field_updaters)
-
-    local_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.LocalDOFevolver))
-
-    global_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.GlobalDOFevolver))
-
-    field_dofevolvers = Tuple(evolver for evolver in system.dofevolvers if isa(evolver, DOFevolvers.FieldDOFevolver))
-
-    
-
-    current_particle_state = deepcopy(system.initial_particle_state)
-    current_field_state = deepcopy(system.initial_field_state)
-
-    
-    final_particle_state = deepcopy(system.initial_particle_state)
-    final_field_state = deepcopy(system.initial_field_state)
-
-    rngs_fields = [Xoshiro(master_seed+i) for i in eachindex(current_field_state)]
-
-    #Assuming number of fields stay constant
-    rngs_particles = [Xoshiro(length(current_field_state)+master_seed+i) for i in eachindex(current_particle_state)]
 
     if !isnothing(Tplot) 
         cpsO = Observable(current_particle_state)
@@ -509,7 +483,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
 
             if Nfield>0
                 for i in eachindex(current_particle_state)
-                    p_i = current_particle_state[i]
+                    p_i = LazyRow(current_particle_state,i)
                     Forces.contribute_field_forces!(p_i, current_field_state,field_forces, t, dt,system,rngs_particles)
                 end
             end
@@ -627,30 +601,31 @@ end
 
 function threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
     Threads.@threads for i in eachindex(current_particle_state)
-            p_i = current_particle_state[i]
-            init_unwrap!(i,current_particle_state, t)
-            init_f_T!(i,current_particle_state, t)
-            particle_step!(i, current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+
+            p_i = LazyRow(current_particle_state,i)
+            init_unwrap!(p_i, t)
+            init_f_T!(p_i, t)
+            particle_step!(i,p_i,current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
         end
     return current_particle_state
 end
 
 function threaded_dofevolver_step!(current_particle_state,local_dofevolvers,t, dt, system)
     Threads.@threads for i in eachindex(current_particle_state)
-
-        local_dofevolver_iterate!(i,current_particle_state, t, dt, local_dofevolvers)
+        p_i = LazyRow(current_particle_state,i)
+        local_dofevolver_iterate!(p_i, t, dt, local_dofevolvers)
     end
     return current_particle_state
 end
 function threaded_periodic_bc!(current_particle_state,system)
     Threads.@threads for i in eachindex(current_particle_state)
-        p_i = current_particle_state[i]
+        p_i = LazyRow(current_particle_state,i)
 
         #apply periodic boundary conditions
         if system.Periodic
-            periodic!(i,p_i,current_particle_state, system.sizes)
+            periodic!(p_i, system.sizes)
         end
-        check_outside_system(i,current_particle_state, system.sizes)
+        check_outside_system(p_i, system.sizes)
     end
     return current_particle_state
 end
@@ -665,10 +640,10 @@ end
 #     return p_i
 # end
 # Use @inline to reduce function call overheads
-@generated function local_dofevolver_iterate!(i,current_particle_state, t, dt, local_dofevolvers::NTuple{N, Any}) where N
+@generated function local_dofevolver_iterate!(p_i, t, dt, local_dofevolvers::NTuple{N, Any}) where N
     quote
-        @nexprs $N k -> @inline DOFevolvers.evolve_locally!(i,current_particle_state, t, dt, local_dofevolvers[k])
-        return current_particle_state
+        @nexprs $N k -> @inline DOFevolvers.evolve_locally!(p_i, t, dt, local_dofevolvers[k])
+        return p_i
     end
 end
 
@@ -679,10 +654,10 @@ end
 #     return p_i
 # end
 
-@generated function external_force_iterate!(i,current_particle_state, t, dt,rngs_particles, system, external_forces::NTuple{N, Any}) where N
+@generated function external_force_iterate!(p_i, t, dt,rngs_particles, system, external_forces::NTuple{N, Any}) where N
     quote
-        @nexprs $N k -> @inline Forces.contribute_external_force!(i,current_particle_state, t, dt,rngs_particles, system, external_forces[k])
-        return current_particle_state
+        @nexprs $N k -> @inline Forces.contribute_external_force!(p_i, t, dt,rngs_particles, system, external_forces[k])
+        return p_i
     end
     
 end
@@ -694,10 +669,10 @@ end
 #     return p_i
 # end
 
-@generated function pair_force_iterate!(i,p_i, p_j, current_particle_state, dx, dxn, t, dt, rngs_particles, system, pair_forces::NTuple{N, Any}) where N
+@generated function pair_force_iterate!(p_i, p_j, dx, dxn, t, dt, rngs_particles, system, pair_forces::NTuple{N, Any}) where N
     quote
-        @inline @nexprs $N k -> @inline Forces.contribute_pair_force!(i,p_i, p_j, current_particle_state, dx, dxn, t, dt, rngs_particles, system, pair_forces[k])
-        return current_particle_state
+        @inline @nexprs $N k -> @inline Forces.contribute_pair_force!(p_i, p_j, dx, dxn, t, dt, rngs_particles, system, pair_forces[k])
+        return p_i
     end
 end
 
@@ -709,24 +684,23 @@ end
 @generated function field_force_iterate!(p_i, field_j, field_indices, t, dt,rngs_particles, system, field_forces::NTuple{N, Any}) where N
     quote
         @nexprs $N k -> @inline Forces.contribute_field_force!(p_i, field_j, field_indices, t, dt,rngs_particles, system, field_forces[k])
-        return current_particle_state
+        return p_i
     end
 end
 
 
 
-function particle_step!(i,current_particle_state,Next,external_forces,Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+function particle_step!(i, p_i,current_particle_state, Next,external_forces,Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
     if Npair>0
-        contribute_pair_forces!(i, current_particle_state,pair_forces,t, dt, system,cells,stencils,rngs_particles)
+        contribute_pair_forces!(i,p_i, current_particle_state ,pair_forces,t, dt, system,cells,stencils,rngs_particles)
     end
     if Next>0
-        external_force_iterate!(i, current_particle_state, t, dt,rngs_particles, system, external_forces)
+        external_force_iterate!(p_i, t, dt,rngs_particles, system, external_forces)
     end
-    return current_particle_state
+    return p_i
 end
 
-function check_outside_system(i, current_particle_state, system_sizes)
-    p_i = current_particle_state[i]
+function check_outside_system(p_i, system_sizes)
     for j in eachindex(p_i.x)
         if p_i.x[j]>system_sizes[j]/2 || p_i.x[j]<-system_sizes[j]/2
             error("JAMs: Particle i = $i is outside simulation box dimension $j. This invalidates cell lists. Suggested fix: make sure particles always stay inside system sizes by increasing the system size of the relevant dimension.")
@@ -764,14 +738,13 @@ end
 
 
 
-function contribute_pair_forces!(i, current_particle_state, pair_forces, t, dt,system,cells,stencils,rngs_particles)
-    @inbounds p_i = current_particle_state[i]
+function contribute_pair_forces!(i,p_i, current_particle_state, pair_forces, t, dt,system,cells,stencils,rngs_particles)
     for stencil in stencils
         candidate_cell_inds = p_i.ci .+ stencil
 
         @inbounds for n in cells[candidate_cell_inds...]
             if i!=n
-                p_j = current_particle_state[n]
+                p_j =  LazyRow(current_particle_state,n)
 
                 dx = minimal_image_difference(p_i.x, p_j.x, system.sizes, system.Periodic)
 
@@ -780,7 +753,7 @@ function contribute_pair_forces!(i, current_particle_state, pair_forces, t, dt,s
                 if dxn2<=system.rcut_pair_global^2
                     dxn = sqrt(dxn2)
 
-                    pair_force_iterate!(i,p_i, p_j,current_particle_state, dx, dxn, t, dt,rngs_particles, system, pair_forces)
+                    pair_force_iterate!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, pair_forces)
 
                 end
 
@@ -883,7 +856,7 @@ function update_cells!(current_particle_state, cells, cell_bin_centers,system,lb
     #new_bin_location = @MVector  zeros(Int64, length(current_particle_state[1].ci))
     for i in eachindex(current_particle_state)
 
-        p_i = current_particle_state[i]
+        p_i = LazyRow(current_particle_state,i)
         #initialize with the old bin location
         #copyto!(new_bin_location, p_i.ci)
         new_bin_location,moved=find_new_bin_location(p_i, cell_bin_centers,system,lbins)

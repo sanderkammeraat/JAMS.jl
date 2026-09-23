@@ -3,16 +3,17 @@
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
 end
-function contribute_pair_force!(i,p_i, p_j , current_particle_state, dx, dxn, t, dt,rngs_particles, system, force::repulsive_soft_disk)
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::repulsive_soft_disk)
 
 
     if p_i.type in force.ontypes && p_j.type in force.ontypes
-    d2R = p_i.R+p_j.R
+        d2R = p_i.R+p_j.R
         if dxn < d2R
 
-            current_particle_state.f[i]+= force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] .* (dxn-d2R) .* dx/dxn
+            p_i.f += force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] .* (dxn-d2R) .* dx/dxn
         end
     end
+    return p_i
 
 end
 
@@ -26,15 +27,15 @@ end
 end
 
 
-function contribute_pair_force!(i,p_i, p_j, current_particle_state, dx, dxn, t, dt,rngs_particles, system, force::morse)
+function contribute_pair_force!(p_i, p_j, current_particle_state, dx, dxn, t, dt,rngs_particles, system, force::morse)
 
-    if p_i.type[1] in force.ontypes && p_j.type[1] in force.ontypes
-        re = p_i.R[1]+p_j.R[1]
+    if p_i.type in force.ontypes && p_j in force.ontypes
+        re = p_i.R+p_j.R
 
         a = force.aarray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
         De = force.Dearray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
 
-       current_particle_state.f[i]+= -2 * De*a*( exp(-2a*(dxn-re)) - exp(-a*(dxn-re)) ) * dx/dxn
+        p_i.f += -2 * De*a*( exp(-2a*(dxn-re)) - exp(-a*(dxn-re)) ) * dx/dxn
 
     end
     return p_i

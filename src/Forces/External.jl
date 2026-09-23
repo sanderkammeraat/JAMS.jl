@@ -5,12 +5,11 @@
     v0::Float64
 end
 
-function contribute_external_force!(i,current_particle_state,t, dt,rngs_particles, system, force::self_propulsion)
-    p_i = current_particle_state[i]
+function contribute_external_force!(p_i,t, dt,rngs_particles, system, force::self_propulsion)
     if p_i.type in force.ontypes
-        current_particle_state.f[i] += p_i.zeta .* force.v0 .* p_i.p
+        p_i.f += p_i.zeta .* force.v0 .* p_i.p
     end
-
+    return p_i
 end
 
 @kwdef struct planar_rotational_noise <: ExternalForce
@@ -19,15 +18,14 @@ end
     normal::SVector{3, Float64} = @SVector [0.0, 0.0, 1.0]
 end
 
-function contribute_external_force!(i,current_particle_state, t, dt, rngs_particles, system, force::planar_rotational_noise)
-    p_i = current_particle_state[i]
+function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::planar_rotational_noise)
     if p_i.type in force.ontypes
 
         η =sqrt( 2*force.Dr ) * rand(rngs_particles[p_i.id],Normal(0, 1))
 
-        current_particle_state.T[i] +=  η .* force.normal .* sqrt(dt)/dt 
+        p_i.T +=  η .* force.normal .* sqrt(dt)/dt 
     end
-
+    return p_i
 end
 
 
@@ -36,16 +34,15 @@ struct self_align_with_v <: ExternalForce
     J::Float64
     unit::Bool
 end
-function contribute_external_force!(i,current_particle_state, t, dt,rngs_particles, system, force::self_align_with_v)
-    p_i = current_particle_state[i]
-    if p_i.type[1] in force.ontypes
+function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::self_align_with_v)
+    if p_i.type in force.ontypes
         
         if !force.unit
-            current_particle_state.T[i]+= force.J*cross(p_i.p,  p_i.v)
+            p_i.T+= force.J*cross(p_i.p,  p_i.v)
         else
             vnorm = norm(p_i.v)
             if vnorm!=0
-                current_particle_state.T[i]+= force.J*cross(p_i.p,  p_i.v)./vnorm
+                p_i.T += force.J*cross(p_i.p,  p_i.v)./vnorm
             end
         end
     end 
