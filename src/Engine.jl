@@ -368,9 +368,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
     current_particle_state = deepcopy(system.initial_particle_state)
     current_field_state = deepcopy(system.initial_field_state)
 
-    
-    final_particle_state = deepcopy(system.initial_particle_state)
-    final_field_state = deepcopy(system.initial_field_state)
+
 
     rngs_fields = [Xoshiro(master_seed+i) for i in eachindex(current_field_state)]
 
@@ -484,7 +482,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
 
             if Nfield>0
                 for i in eachindex(current_particle_state)
-                    p_i = LazyRow(current_particle_state,i)
+                    p_i = PRow(current_particle_state, i)
                     Forces.contribute_field_forces!(p_i, current_field_state,field_forces, t, dt,system,rngs_particles)
                 end
             end
@@ -515,11 +513,12 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
                 end
             end
 
-            final_particle_state = deepcopy(current_particle_state)
-            final_field_state = deepcopy(current_field_state)
+
             
             #Save the states before the final dof step
             if n==n_final_save
+                final_particle_state = deepcopy(current_particle_state)
+                final_field_state = deepcopy(current_field_state)
 
 
 
@@ -582,7 +581,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
 
         end
 
-        return SIM(deepcopy(final_particle_state), deepcopy(final_field_state), deepcopy(dt), deepcopy(t_stop), deepcopy(system),true);
+        return SIM(deepcopy(current_particle_state), deepcopy(current_field_state), deepcopy(dt), deepcopy(t_stop), deepcopy(system),true);
 
     catch e
 
@@ -603,7 +602,7 @@ end
 function threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
     Threads.@threads for i in eachindex(current_particle_state)
 
-            p_i = LazyRow(current_particle_state,i)
+            p_i = PRow(current_particle_state, i)
             init_unwrap!(p_i, t)
             init_f_T!(p_i, t)
             particle_step!(i,p_i,current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
@@ -613,20 +612,20 @@ end
 
 function threaded_dofevolver_step!(current_particle_state,local_dofevolvers,t, dt, system)
     Threads.@threads for i in eachindex(current_particle_state)
-        p_i = LazyRow(current_particle_state,i)
+        p_i = PRow(current_particle_state, i)
         local_dofevolver_iterate!(p_i, t, dt, local_dofevolvers)
     end
     return current_particle_state
 end
 function threaded_periodic_bc!(current_particle_state,system)
     Threads.@threads for i in eachindex(current_particle_state)
-        p_i = LazyRow(current_particle_state,i)
+        p_i = PRow(current_particle_state, i)
 
         #apply periodic boundary conditions
         if system.Periodic
             periodic!(p_i, system.sizes)
         end
-        check_outside_system(p_i, system.sizes)
+        check_outside_system(i, p_i, system.sizes)
     end
     return current_particle_state
 end
@@ -701,7 +700,7 @@ function particle_step!(i, p_i,current_particle_state, Next,external_forces,Npai
     return p_i
 end
 
-function check_outside_system(p_i, system_sizes)
+function check_outside_system(i,p_i, system_sizes)
     for j in eachindex(p_i.x)
         if p_i.x[j]>system_sizes[j]/2 || p_i.x[j]<-system_sizes[j]/2
             error("JAMs: Particle i = $i is outside simulation box dimension $j. This invalidates cell lists. Suggested fix: make sure particles always stay inside system sizes by increasing the system size of the relevant dimension.")
@@ -745,7 +744,7 @@ function contribute_pair_forces!(i,p_i, current_particle_state, pair_forces, t, 
 
         @inbounds for n in cells[candidate_cell_inds...]
             if i!=n
-                p_j =  LazyRow(current_particle_state,n)
+                p_j =  PRow(current_particle_state, n)
 
                 dx = minimal_image_difference(p_i.x, p_j.x, system.sizes, system.Periodic)
 
@@ -857,7 +856,7 @@ function update_cells!(current_particle_state, cells, cell_bin_centers,system,lb
     #new_bin_location = @MVector  zeros(Int64, length(current_particle_state[1].ci))
     for i in eachindex(current_particle_state)
 
-        p_i = LazyRow(current_particle_state,i)
+        p_i = PRow(current_particle_state, i)
         #initialize with the old bin location
         #copyto!(new_bin_location, p_i.ci)
         new_bin_location,moved=find_new_bin_location(p_i, cell_bin_centers,system,lbins)
@@ -879,7 +878,16 @@ function update_cells!(current_particle_state, cells, cell_bin_centers,system,lb
     return current_particle_state, cells
 end
 
-
+struct PRow{S}
+    sa::S
+    i::Int
+end
+@inline Base.getproperty(r::PRow, s::Symbol) =
+    @inbounds getproperty(getfield(r, :sa), s)[getfield(r, :i)]
+@inline function Base.setproperty!(r::PRow, s::Symbol, v)
+    @inbounds getproperty(getfield(r, :sa), s)[getfield(r, :i)] = v
+    return v
+end
 
 function update_ghost_cells!(cells,system)
     if system.Periodic
