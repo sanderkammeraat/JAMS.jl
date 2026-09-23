@@ -18,7 +18,6 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 end
 
 
-
 @kwdef struct morse{T1, T2}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     Dearray::T1
@@ -27,7 +26,7 @@ end
 end
 
 
-function contribute_pair_force!(p_i, p_j, current_particle_state, dx, dxn, t, dt,rngs_particles, system, force::morse)
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::morse)
 
     if p_i.type in force.ontypes && p_j in force.ontypes
         re = p_i.R+p_j.R
