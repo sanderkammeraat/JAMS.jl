@@ -42,29 +42,6 @@ function init_f_T!(p_i, t)
 end
 
 
-function minimal_image_closest_bin_center!(field_indices,x, bin_centers,system_sizes,system_Periodic)
-
-    for (i, xi) in pairs(x)
-
-        current_min_ind = 1
-        current_min_dis = Inf
-
-        for (j, bcij) in pairs(bin_centers[i])
-            dis = abs( bcij - x[i])
-
-            if dis<current_min_dis
-                current_min_ind = j
-                current_min_dis = dis
-            end
-
-        end
-        field_indices[i] = current_min_ind
-
-   
-    end
-    return field_indices
-
-end
 #Optimize for field indices
 function minimal_image_closest_field_center(x, bin_centers, lbin)
 
@@ -342,7 +319,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
         @warn ("JAMs: System is set to non-periodic: you should make sure particles always stay in system sizes for correctly working cell lists. The program will catch this by throwing an error if a particle is detected outside the box.")
     end
 
-    system, cells,cell_bin_centers,stencils, lbins = construct_cell_lists!(system)
+    cells = construct_cell_list(system)
 
     external_forces = Tuple(force for force in system.forces if isa(force, Forces.ExternalForce))
     pair_forces = Tuple(force for force in system.forces if isa(force, Forces.PairForce))
@@ -478,7 +455,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
     try # Catch mechanism to close raw data file in case of an interruption
         @showprogress dt = 1 desc="JAMming in progress..." showspeed=true for (n, t) in pairs(integration_tax)
             
-            current_particle_state = threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+            current_particle_state = threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,rngs_particles)
 
             if Nfield>0
                 for i in eachindex(current_particle_state)
@@ -540,14 +517,14 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
             #Or global. The order will first be
 
             for dofevolver in global_dofevolvers
-                current_particle_state,current_field_state = DOFevolvers.evolve_globally!(current_particle_state, current_field_state, system, cells, stencils, dt, dofevolver)
+                current_particle_state,current_field_state = DOFevolvers.evolve_globally!(current_particle_state, current_field_state, system, cells, dt, dofevolver)
             end
 
             #Perform checks
 
             current_particle_state = threaded_periodic_bc!(current_particle_state,system)
 
-            current_particle_state, cells = update_cells!(current_particle_state, cells, cell_bin_centers,system,lbins)
+            cells = update_cells!(cells, current_particle_state)
 
             #DOF evolver fields
             for i in eachindex(current_field_state)
@@ -560,7 +537,6 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
             end
 
 
-            cells = update_ghost_cells!(cells,system)
 
             
             if !isnothing(Tplot)
@@ -599,13 +575,13 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
     end
 end
 
-function threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+function threaded_particle_step!(current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,rngs_particles)
     Threads.@threads for i in eachindex(current_particle_state)
 
             p_i = PRow(current_particle_state, i)
             init_unwrap!(p_i, t)
             init_f_T!(p_i, t)
-            particle_step!(i,p_i,current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+            particle_step!(i,p_i,current_particle_state,Next,external_forces, Npair,pair_forces,t, dt, system,cells,rngs_particles)
         end
     return current_particle_state
 end
@@ -690,9 +666,9 @@ end
 
 
 
-function particle_step!(i, p_i,current_particle_state, Next,external_forces,Npair,pair_forces,t, dt, system,cells,cell_bin_centers,stencils,rngs_particles)
+function particle_step!(i, p_i,current_particle_state, Next,external_forces,Npair,pair_forces,t, dt, system,cells,rngs_particles)
     if Npair>0
-        contribute_pair_forces!(i,p_i, current_particle_state ,pair_forces,t, dt, system,cells,stencils,rngs_particles)
+        contribute_pair_forces!(i,p_i, current_particle_state ,pair_forces,t, dt, system,cells,rngs_particles)
     end
     if Next>0
         external_force_iterate!(p_i, t, dt,rngs_particles, system, external_forces)
@@ -738,145 +714,40 @@ end
 
 
 
-function contribute_pair_forces!(i,p_i, current_particle_state, pair_forces, t, dt,system,cells,stencils,rngs_particles)
-    for stencil in stencils
-        candidate_cell_inds = p_i.ci .+ stencil
+function contribute_pair_forces!(i,p_i, current_particle_state, pair_forces, t, dt,system,cells,rngs_particles)
 
-        @inbounds for n in cells[candidate_cell_inds...]
-            if i!=n
-                p_j =  PRow(current_particle_state, n)
 
-                dx = minimal_image_difference(p_i.x, p_j.x, system.sizes, system.Periodic)
+    cell_id_of_p_i = cells.particle_id_to_cell_id[i]
 
-                dxn2 = sum(abs2,dx)
-                
-                if dxn2<=system.rcut_pair_global^2
-                    dxn = sqrt(dxn2)
+    @inbounds for k in 1:27
+        candidate_cell_id = cells.neighbors[k, cell_id_of_p_i]
+        candidate_cell_id == 0 && break #if zero: there will be no neigbouring cells anymore so we can stop completely 
 
-                    pair_force_iterate!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, pair_forces)
+        for ind in cells.group_edges[candidate_cell_id]:(cells.group_edges[candidate_cell_id+1]-1)
 
-                end
+            j = cells.grouped_particle_ids[ind]
+
+            j == i && continue #If the particle in the candidate cell is particle i, skip the next part
+
+            p_j =  PRow(current_particle_state, j)
+
+            dx = minimal_image_difference(p_i.x, p_j.x, system.sizes, system.Periodic)
+
+            dxn2 = sum(abs2,dx)
+            
+            if dxn2<=system.rcut_pair_global^2
+                dxn = sqrt(dxn2)
+
+                pair_force_iterate!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, pair_forces)
 
             end
         end
     end
+    return p_i
 end
 
 
 
-function construct_cell_list_centers(L,rcut_pair_global)
-
-    #Choose bin size slight larger if lbin does not divide box length
-    nbin = floor(Int64,L/rcut_pair_global)
-
-    #In case user sets irrelevant dimension smaller than rcut_pair_global
-
-    if nbin<1
-        nbin=2 #very important, must have at least 2 real bins besides the ghost cells 
-    end
-    lbin = L/nbin
-
-
-    bin_centers = Float64[-L-rcut_pair_global]
-    #0.1 factor to make sure the end point is inluded
-    bin_centers = append!(bin_centers,range(start=-(L-lbin)/2, stop=(L-lbin)/2+0.1*lbin, step=lbin))
-    bin_centers = append!(bin_centers,L+rcut_pair_global)
-
-    return bin_centers, lbin
-
-end
-
-function construct_cell_lists!(system)
-
-    dim = length(system.sizes)
-
-    Lx = system.sizes[1]
-    Ly = system.sizes[2]
-    Lz = system.sizes[3]
-
-    #First and last bin center should be far outside the simulation box so a particle is never associated in a ghost cell
-    #via the minimal_image_closest_bin_center function. Note that system spans from -Li/2 to Li/2 so -Li should be
-    #safely outside reach both when using periodic boundary conditions
-    #or when using a finite system, because particle outside box will raise and error and  abort program
-    #In case system size is entered as Int64, without FLoat64 in front, the array will be typed as Int64,
-    # not allowing appending the  float values in the next line. Therefore declare type as Float64[].
-    # +lbin incase lbin is larger than one of the system sizes
-    x_bin_centers,x_lbin = construct_cell_list_centers(Lx,system.rcut_pair_global)
-    y_bin_centers, y_lbin = construct_cell_list_centers(Ly,system.rcut_pair_global)
-    z_bin_centers,z_lbin = construct_cell_list_centers(Lz,system.rcut_pair_global)
-    nx = length(x_bin_centers)
-    ny = length(y_bin_centers)
-    nz = length(z_bin_centers)
-
-    cell_bin_centers = [x_bin_centers, y_bin_centers, z_bin_centers]
-
-    cells = reshape([Int64[] for i in 1:nx*ny*nz],nx,ny,nz)
-    for (i,p_i) in pairs(system.initial_particle_state)
-
-        cell_indices=@MVector zeros(Int,length(p_i.x))
-        cell_indices = minimal_image_closest_bin_center!(cell_indices,p_i.x, cell_bin_centers,system.sizes,system.Periodic)
-
-        cells[cell_indices...]= append!(cells[cell_indices...],p_i.id)
-        system.initial_particle_state.ci[i] = cell_indices
-
-    end
-    stencils = [ @SVector [ni, nj, nk] for ni in -1:1 for nj in -1:1 for nk in -1:1]
-
-    lbins=(x_lbin, y_lbin, z_lbin)
-
-    cells = update_ghost_cells!(cells,system)
-
-    return system, cells, cell_bin_centers, stencils, lbins
-end
-
-@inbounds function find_new_bin_location(p_i, cell_bin_centers,system,lbins)
-
-    moved=false
-    #Collect old locations to preallocate for new one
-    x_ind = length(cell_bin_centers[1])>1 ? clamp(round(Int, (p_i.x[1] - cell_bin_centers[1][2]) / lbins[1]) + 2, 2, length(cell_bin_centers[1])-1) : 1
-    moved = moved || (x_ind != p_i.ci[1])
-
-    y_ind = length(cell_bin_centers[2])>1 ? clamp(round(Int, (p_i.x[2] - cell_bin_centers[2][2]) / lbins[2]) + 2, 2, length(cell_bin_centers[2])-1) : 1
-    moved = moved || (y_ind != p_i.ci[2])
-
-    z_ind = length(cell_bin_centers[3])>1 ? clamp(round(Int, (p_i.x[3] - cell_bin_centers[3][2]) / lbins[3]) + 2, 2, length(cell_bin_centers[3])-1) : 1
-    moved = moved || (z_ind != p_i.ci[3])
-
-    return SVector{3, Int64}(x_ind, y_ind, z_ind), moved
-
-end
-
-
-
-function update_cells!(current_particle_state, cells, cell_bin_centers,system,lbins)
-
-    #Updating the cell list is not threadsafe, hence put it outside the threaded loop
-    #The cell list update must come *after* the DOF evolving of particles!
-
-    #new_bin_location = @MVector  zeros(Int64, length(current_particle_state[1].ci))
-    for i in eachindex(current_particle_state)
-
-        p_i = PRow(current_particle_state, i)
-        #initialize with the old bin location
-        #copyto!(new_bin_location, p_i.ci)
-        new_bin_location,moved=find_new_bin_location(p_i, cell_bin_centers,system,lbins)
-        if moved
-
-            cell_view = @views cells[p_i.ci...]
-            ind = findfirst(x -> x == p_i.id, cell_view)
-            # #Swap and pop
-
-            cells[p_i.ci...][end], cells[p_i.ci...][ind] = cells[p_i.ci...][ind], cells[p_i.ci...][end]
-            pop!(cells[p_i.ci...])
-            
-            #add to correct lists
-            current_particle_state.ci[i]= new_bin_location
-
-            push!(cells[new_bin_location...],p_i.id)
-        end
-    end
-    return current_particle_state, cells
-end
 
 struct PRow{S}
     sa::S
@@ -889,35 +760,136 @@ end
     return v
 end
 
-function update_ghost_cells!(cells,system)
-    if system.Periodic
-        
-        dims = length(system.sizes)
-        if dims==2
 
-            cells[1,:] .= @view cells[end-1,:]
-            cells[end,:] .= @view cells[2,:]
+struct Cells
+    #For convenience store system sizes here as well
+    sizes::NTuple{3,Float64}
+    nbins::NTuple{3,Int} 
+    lbins::NTuple{3,Float64}
+    neighbors::Matrix{Int}   # 27 × Ncells, 0 = no neighbour
+    
+    grouped_particle_ids::Vector{Int}
 
-            cells[:,1] .= @view cells[:,end-1]
-            cells[:,end] .= @view cells[:,2]
-        end
+    group_edges::Vector{Int} #index in cell grouped_particle_ids at which a cell starts
 
-        if dims==3
+    particle_id_to_cell_id::Vector{Int}
 
-            #The bottom works, but one can do it much more easily: imagine e.g. 5 by 5 cube and see how each points gets correctly
-            # assigned by simply doing the following steps IN ORDER
-
-            cells[1, :, :]   .= @view cells[end-1, :, :]
-            cells[end, :, :] .= @view cells[2, :, :]
-
-            cells[:, 1, :]   .= @view cells[:, end-1, :]
-            cells[:, end, :] .= @view cells[:, 2, :]
-
-            cells[:, :, 1]   .= @view cells[:, :, end-1]
-            cells[:, :, end] .= @view cells[:, :, 2]
+    counts::Vector{Int}         
 
     
+end
+
+@inline function find_cell_index(xi, nbins, lbins, sizes)
+    cx = clamp(floor(Int, (xi[1] + sizes[1] / 2) / lbins[1]), 0, nbins[1] - 1) + 1
+    cy = clamp(floor(Int, (xi[2] + sizes[2] / 2) / lbins[2]), 0, nbins[2] - 1) + 1
+    cz = clamp(floor(Int, (xi[3] + sizes[3] / 2) / lbins[3]), 0, nbins[3] - 1) + 1
+    return cx + nbins[1] * ((cy - 1) + nbins[2] * (cz - 1))
+
+end
+
+function construct_cell_neighbour_list(nbins, Periodic)
+
+    cell_neighbour_list = zeros(Int, 27, prod(nbins))
+    Nx = nbins[1]
+    Ny = nbins[2]
+    Nz = nbins[3]
+    for cx in 1:Nx
+        for cy in 1:Ny
+            for cz in 1:Nz
+                neighbour_number=1
+                for x_offset in -1:1
+                    for y_offset in -1:1
+                        for z_offset in -1:1
+                            cx_candidate = cx + x_offset
+                            cy_candidate = cy + y_offset
+                            cz_candidate = cz + z_offset
+
+                            if Periodic
+                                #mod 1 takes care of the index 1 convention in Julia 
+                                # e.g. 10,10 stays at 10, while 11,10 becomes 1
+                                cx_candidate = mod1(cx_candidate,Nx)
+                                cy_candidate = mod1(cy_candidate,Ny)
+                                cz_candidate = mod1(cz_candidate,Nz)
+
+                            #Skip next part if not valid neigbour
+                            elseif !( (1<=cx_candidate<=Nx) && (1<=cy_candidate<=Ny)  && (1<=cz_candidate<=Nz) )
+                                continue
+                            end
+                            cell_candidate_index = cx_candidate + Nx*(cy_candidate-1) + Ny*(cz_candidate-1)
+                            cell_index = cx + Nx*(cy-1) + Ny*(cz-1)
+                            #avoid duplicates in case of 1 single cell layer and pbc
+                            if !(cell_candidate_index in cell_neighbour_list[:,cell_index])
+                                cell_neighbour_list[neighbour_number,cell_index] = cell_candidate_index
+                                neighbour_number+=1 #This way we fill in order and a 0 in the neighbour list then means no more neighbours
+                            end
+
+                        end
+                    end
+                end
+
+            end
         end
     end
+    return cell_neighbour_list
+end
+
+
+function construct_cell_list(system)
+    #At least one bin
+    nbins = ntuple(d -> max(floor(Int, system.sizes[d] / system.rcut_pair_global), 1), 3)
+    lbins = ntuple(d -> system.sizes[d] / nbins[d], 3)
+
+    N = length(system.initial_particle_state)
+    Ncells = prod(nbins) #total number of bins
+    
+    #initialize cell list
+    cells = Cells(system.sizes, nbins, lbins,construct_cell_neighbour_list(nbins, system.Periodic),
+                  zeros(Int, N), zeros(Int, Ncells + 1), zeros(Int, N), zeros(Int, Ncells)
+                  )
+
+    return update_cells!(cells, system.initial_particle_state)
+end
+
+@inbounds function update_cells!(cells, current_particle_state)
+
+    #Find new cell for each particle
+    Threads.@threads for id in eachindex(current_particle_state)
+        @inbounds cells.particle_id_to_cell_id[id] = find_cell_index(current_particle_state.x[id], cells.nbins, cells.lbins, cells.sizes)
+    end
+
+    #Reset counts
+    fill!(cells.counts, 0)
+
+    #Count how many particles in each cell
+    for cell_id in cells.particle_id_to_cell_id
+        cells.counts[cell_id] += 1
+    end
+
+    #Calculate cell-group edge indices based on counts
+    cells.group_edges[1] = 1
+    for i in eachindex(cells.counts)
+         cells.group_edges[i+1] =  cells.group_edges[i] + cells.counts[i]
+    end
+
+
+    #Now we are going to place the particles id in the grouped-per-cell particle id list. We will reuse the counts array.
+    #For each cell, the first particle id should go to the (left) group edge:
+    for i in eachindex(cells.counts)
+        cells.counts[i] = cells.group_edges[i]
+    end
+
+    for particle_id in eachindex(cells.particle_id_to_cell_id)
+
+        #Particle id  needs to be placed in the group of cell id...
+        cell_id = cells.particle_id_to_cell_id[particle_id]
+
+        #Which for the first particle of the group is at
+        cells.grouped_particle_ids[cells.counts[cell_id] ] = particle_id
+        #and for later ones we need to shift to the right
+        cells.counts[cell_id]+=1
+ 
+    end
+
+
     return cells
 end

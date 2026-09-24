@@ -10,7 +10,7 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
         d2R = p_i.R+p_j.R
         if dxn < d2R
 
-            p_i.f += force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] .* (dxn-d2R) .* dx/dxn
+            p_i.f += force.karray[p_i.type,p_j.type] .* (dxn-d2R) .* dx/dxn
         end
     end
     return p_i
@@ -31,8 +31,8 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
     if p_i.type in force.ontypes && p_j in force.ontypes
         re = p_i.R+p_j.R
 
-        a = force.aarray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
-        De = force.Dearray[get_param_ind(force.ontypes,p_i.type[1]),get_param_ind(force.ontypes,p_j.type[1])]
+        a = force.aarray[p_i.type,p_j.type]
+        De = force.Dearray[p_i.type,p_j.type]
 
         p_i.f += -2 * De*a*( exp(-2a*(dxn-re)) - exp(-a*(dxn-re)) ) * dx/dxn
 
@@ -44,11 +44,3 @@ end
 
 
 
-
-
-
-
-
-function get_param_ind(force_types, particle_type)
-    return findfirst(isequal(particle_type),force_types)
-end
