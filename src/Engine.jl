@@ -818,8 +818,8 @@ function construct_cell_neighbour_list(nbins, Periodic)
                             elseif !( (1<=cx_candidate<=Nx) && (1<=cy_candidate<=Ny)  && (1<=cz_candidate<=Nz) )
                                 continue
                             end
-                            cell_candidate_index = cx_candidate + Nx*(cy_candidate-1) + Ny*(cz_candidate-1)
-                            cell_index = cx + Nx*(cy-1) + Ny*(cz-1)
+                            cell_candidate_index = cx_candidate + Nx* ( (cy_candidate-1) + Ny*(cz_candidate-1)) 
+                            cell_index = cx + Nx*( (cy-1) + Ny*(cz-1))
                             #avoid duplicates in case of 1 single cell layer and pbc
                             if !(cell_candidate_index in cell_neighbour_list[:,cell_index])
                                 cell_neighbour_list[neighbour_number,cell_index] = cell_candidate_index
