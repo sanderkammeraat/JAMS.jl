@@ -11,7 +11,7 @@ function relaxation()
     Lx = 50. *aspect
     Ly = Lx /aspect^2
     phi = 1.3
-    poly=15e-9
+    poly=15e-2
     l = 1.5
     xs, ys = Initial.box(l, Lx, Ly)
     Nb = length(xs)

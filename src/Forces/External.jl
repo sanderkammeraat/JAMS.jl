@@ -34,6 +34,7 @@ struct self_align_with_v <: ExternalForce
     J::Float64
     unit::Bool
 end
+
 function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::self_align_with_v)
     if p_i.type in force.ontypes
         

@@ -766,7 +766,10 @@ struct Cells
     sizes::NTuple{3,Float64}
     nbins::NTuple{3,Int} 
     lbins::NTuple{3,Float64}
-    neighbors::Matrix{Int}   # 27 × Ncells, 0 = no neighbour
+    neighbors::Matrix{Int}
+    # each column [:,i] corresponds to the cell ids of neighbours in the 27 directions
+    # of cell i, a zero entry means no neighbour in that direction (in case of finite systems)
+    # the entries are ordered so that every entry down the column after the first zero entry is also zero
     
     grouped_particle_ids::Vector{Int}
 
