@@ -13,11 +13,25 @@ function polar_particle!(current_frame_group, current_particle_state, current_fi
 
     current_frame_group["R"] = current_particle_state.R
 
-    current_frame_group["x"]   = reinterpret(reshape, Float64, current_particle_state.x)
-    current_frame_group["xuw"] = reinterpret(reshape, Float64, current_particle_state.xuw)
-    current_frame_group["v"]   = reinterpret(reshape, Float64, current_particle_state.v)
-    current_frame_group["p"]   = reinterpret(reshape, Float64, current_particle_state.p)
-    current_frame_group["q"]   = reinterpret(reshape, Float64, current_particle_state.q)
+    current_frame_group["x"] = [p_i.x[1] for p_i in current_particle_state]
+    current_frame_group["y"] = [p_i.x[2] for p_i in current_particle_state]
+    current_frame_group["z"] = [p_i.x[3] for p_i in current_particle_state]
+
+    current_frame_group["xuw"] = [p_i.xuw[1] for p_i in current_particle_state]
+    current_frame_group["yuw"] = [p_i.xuw[2] for p_i in current_particle_state]
+    current_frame_group["zuw"] = [p_i.xuw[3] for p_i in current_particle_state]
+
+    current_frame_group["vx"] = [p_i.v[1] for p_i in current_particle_state]
+    current_frame_group["vy"] = [p_i.v[2] for p_i in current_particle_state]
+    current_frame_group["vz"] = [p_i.v[3] for p_i in current_particle_state]
+
+    current_frame_group["px"] = [p_i.p[1] for p_i in current_particle_state]
+    current_frame_group["py"] = [p_i.p[2] for p_i in current_particle_state]
+    current_frame_group["pz"] = [p_i.p[3] for p_i in current_particle_state]
+
+    current_frame_group["qx"] = [p_i.q[1] for p_i in current_particle_state]
+    current_frame_group["qy"] = [p_i.q[2] for p_i in current_particle_state]
+    current_frame_group["qz"] = [p_i.q[3] for p_i in current_particle_state]
 
     return current_frame_group
 

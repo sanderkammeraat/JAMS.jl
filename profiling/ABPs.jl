@@ -8,7 +8,7 @@ function simulation()
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
 
-    N=100000
+    N=10000
     ϕ = 1.0
     poly=15e-2
     Rs =rand(Uniform(1-poly, 1+poly),N)
@@ -26,7 +26,7 @@ function simulation()
 
     system = System(sizes=sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=true,rcut_pair_global=2.5*(1+poly));
     
-    sim = Euler_integrator(system,0.01, 1); 
+    sim = Euler_integrator(system,0.01, 10, Tsave=nothing, save_functions=(Save.polar_particle!,), save_folder_path=joinpath(pwd(), "test_saving_v1_10")); 
     return sim;
 
 end
