@@ -8,7 +8,7 @@ function simulation()
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
 
-    N=10000
+    N=100000
     ϕ = 1.0
     poly=15e-2
     Rs =rand(Uniform(1-poly, 1+poly),N)
@@ -35,6 +35,8 @@ end
 sim = simulation()
 
 @profview simulation()
+
+@profview_allocs simulation()
 
 
 

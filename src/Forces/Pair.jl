@@ -29,7 +29,7 @@ end
 
 function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::morse)
 
-    if p_i.type in force.ontypes && p_j in force.ontypes
+    if p_i.type in force.ontypes && p_j.type in force.ontypes
         re = p_i.R+p_j.R
 
         a = force.aarray[p_i.type,p_j.type]
