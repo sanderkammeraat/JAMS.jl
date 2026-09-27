@@ -1,4 +1,4 @@
-# Design
+# Overview
 
 JAMS is modular thanks to its abstraction of the general building blocks that are naturally part of a simulation. This page explains
 what each abstract building block is and how together they define a complete simulation in JAMS.
@@ -100,7 +100,7 @@ same result but costs more time.
 
 ## System: how everything comes together.
 
-The `System` struct defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range.
+The [`System`](@ref) struct defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range.
 
 ## Euler_integrator: evolving the system over time
 
