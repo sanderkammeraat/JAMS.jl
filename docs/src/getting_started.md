@@ -2,7 +2,7 @@
 
 ## Installation
 
-In the Julia REPL, run
+In a Julia script or in the Julia REPL, run
 
 ```julia
 using Pkg

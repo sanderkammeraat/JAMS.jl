@@ -100,7 +100,7 @@ same result but costs more time.
 
 ## System: how everything comes together.
 
-The `System` struct [] defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range.
+The `System` struct defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range.
 
 ## Euler_integrator: evolving the system over time
 
