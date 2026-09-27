@@ -1,4 +1,15 @@
 
+"""
+    LPlot
+
+Plot functions for live plotting. Pass a tuple of them to [`Euler_integrator`](@ref JAMS.Euler_integrator) as
+`plot_functions`, e.g. `plot_functions=(LPlot.disks_orientation!, LPlot.directors!)`.
+Live plotting needs `using GLMakie` after `using JAMS`.
+
+Every plot function has the signature `f(fig, ax, cpsO, cfsO)`, where `cpsO` and `cfsO` are
+Makie `Observable`s of the current particle state and field state. Each function only works
+for particles (or fields) that have the fields it uses, listed in its docstring.
+"""
 module LPlot
 using CairoMakie
 using StaticArrays
@@ -16,6 +27,13 @@ else
 end
 
 
+"""
+    points!(f, ax, cpsO, cfsO)
+
+Positions, coloured by particle `id`. Requires particle fields `x` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function points!(f,ax, cpsO, cfsO)
 
 
@@ -36,6 +54,13 @@ function points!(f,ax, cpsO, cfsO)
 end
 
 #Experimental
+"""
+    trajectories!(f, ax, cpsO, cfsO)
+
+Experimental. The last 100 positions of every particle, drawn as lines. Requires particle field `x`. Assumes the particle order does not change during the simulation.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function trajectories!(f,ax, cpsO, cfsO)
     maxlen = 100
     N = length(cpsO[])
@@ -70,6 +95,13 @@ function trajectories!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    director_points!(f, ax, cpsO, cfsO)
+
+Markers at the tip of the polarity vector, `x + p`, in red (for 3-component positions). Requires particle fields `x`, `p` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function director_points!(f,ax, cpsO, cfsO)
 
 
@@ -95,6 +127,13 @@ function director_points!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    field_magnitude!(f, ax, cpsO, cfsO)
+
+Heatmap of the concentration `C` of the first field, with colour range 0 to 2 and the bin edges drawn as grid lines. Requires a field with fields `bin_centers`, `lbin` and `C`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function field_magnitude!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
@@ -119,6 +158,13 @@ function field_magnitude!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    GPUfield_magnitude!(f, ax, cpsO, cfsO)
+
+Same as [`field_magnitude!`](@ref), but converts `C` to `Float64` first, for fields stored in single precision or on a GPU.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function GPUfield_magnitude!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
@@ -143,6 +189,13 @@ function GPUfield_magnitude!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    field_log_magnitude!(f, ax, cpsO, cfsO)
+
+Heatmap of `log10(C)` of the first field, with colour range -4 to -2. Requires a field with fields `bin_centers` and `C`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function field_log_magnitude!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
@@ -158,6 +211,13 @@ end
 
 
 
+"""
+    potential!(f, ax, cpsO, cfsO)
+
+Surface plot of `C` of the first field, interpreted as a potential energy landscape. Use with `plotdim=3`. Requires a field with fields `bin_centers` and `C`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function potential!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
@@ -170,6 +230,13 @@ function potential!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    field_magnitude_wgrid!(f, ax, cpsO, cfsO)
+
+Heatmap of `C` of the first field, with colour range 0 to 1 and grid lines at the bin centres. Requires a field with fields `bin_centers` and `C`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function field_magnitude_wgrid!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
@@ -182,6 +249,13 @@ function field_magnitude_wgrid!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    type_points!(f, ax, cpsO, cfsO)
+
+Positions, coloured by particle `type`. Requires particle fields `x` and `type`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function type_points!(f,ax, cpsO, cfsO)
 
 
@@ -202,6 +276,13 @@ function type_points!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    shape_disks!(f, ax, cpsO, cfsO)
+
+Rigid bodies drawn as circles at their extent points `xe` with radii `re`, coloured by `id`. Requires particle fields `xe`, `re` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function shape_disks!(f,ax, cpsO, cfsO)
     c = @lift([ p_i.id[1] for p_i in $cpsO])
     for j = 1:size(cpsO[][1].xe)[1]
@@ -219,6 +300,13 @@ end
 
 
 
+"""
+    shape_disks_orientation!(f, ax, cpsO, cfsO)
+
+Like [`shape_disks!`](@ref), coloured by the angle of the polarity `p` in the xy-plane.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function shape_disks_orientation!(f,ax, cpsO, cfsO)
     c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $cpsO])
     for j = 1:size(cpsO[][1].xe)[1]
@@ -234,6 +322,13 @@ function shape_disks_orientation!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    shape_disks_type!(f, ax, cpsO, cfsO)
+
+Like [`shape_disks!`](@ref), coloured by particle `type`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function shape_disks_type!(f,ax, cpsO, cfsO)
     c = @lift([ p_i.type[1] for p_i in $cpsO])
     for j = 1:size(cpsO[][1].xe)[1]
@@ -249,6 +344,13 @@ function shape_disks_type!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    shape_points!(f, ax, cpsO, cfsO)
+
+Rigid bodies drawn as points at their extent points `xe`, coloured by `id`. Requires particle fields `xe`, `re` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function shape_points!(f,ax, cpsO, cfsO)
     c = @lift([ p_i.id[1] for p_i in $cpsO])
     for j = 1:size(cpsO[][1].xe)[1]
@@ -267,6 +369,13 @@ end
 
 
 
+"""
+    Swarmalators!(f, ax, cpsO, cfsO)
+
+Positions, coloured by the internal phase `ϕ` (swarmalator models). Requires particle fields `x` and `ϕ`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function Swarmalators!(f,ax, cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -279,6 +388,13 @@ function Swarmalators!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    sphere!(f, ax, cpsO, cfsO)
+
+A white sphere centred on the origin, with radius equal to the distance of the first particle from the origin. Useful as a background for particles confined to a sphere. Use with `plotdim=3`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function sphere!(f,ax, cpsO, cfsO)
 
 
@@ -289,6 +405,13 @@ function sphere!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    sized_points!(f, ax, cpsO, cfsO)
+
+Particles drawn at their true size: disks of radius `R` in 2D, transparent spheres in 3D, coloured by `id`. Requires particle fields `x`, `R` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function sized_points!(f,ax, cpsO, cfsO)
 
 
@@ -318,6 +441,13 @@ function sized_points!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    polymers!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by polymer id `pol_id`. Requires particle fields `x`, `R` and `pol_id`, as in [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer).
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function polymers!(f,ax, cpsO, cfsO)
 
 
@@ -334,6 +464,13 @@ function polymers!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    polymers_3d!(f, ax, cpsO, cfsO)
+
+Spheres of radius `R`, coloured by polymer id `pol_id`. Use with `plotdim=3`. Requires particle fields `x`, `R` and `pol_id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function polymers_3d!(f,ax, cpsO, cfsO)
 
 
@@ -350,6 +487,13 @@ function polymers_3d!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    disks!(f, ax, cpsO, cfsO)
+
+Disks of radius `R` at the particle positions, coloured by `id`. Requires particle fields `x`, `R` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks!(f,ax, cpsO, cfsO)
 
 
@@ -367,6 +511,11 @@ end
 
 
 
+"""
+    ellipse(p_i) -> (xs, ys)
+
+Outline of the ellipse used by [`ellipses!`](@ref) for particle `p_i`.
+"""
 function ellipse(p_i)
 
     lmda_major = 0.5*(p_i.Lambda[1,1]+p_i.Lambda[2,2]) + sqrt(0.25*(p_i.Lambda[1,1]-p_i.Lambda[2,2])^2 + p_i.Lambda[1,2]^2)
@@ -388,6 +537,13 @@ end
 
 
 
+"""
+    ellipses!(f, ax, cpsO, cfsO)
+
+Particles drawn as ellipses whose axes are the eigenvalues of the 2×2 shape tensor `Lambda`, rotated along the polarity `p`. Requires particle fields `x`, `p` and `Lambda`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function ellipses!(f,ax, cpsO, cfsO)
 
     xs = @lift([ ellipse( p_i )[1] for p_i in $cpsO])
@@ -405,6 +561,13 @@ function ellipses!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    transparant_disks!(f, ax, cpsO, cfsO)
+
+White, almost transparent disks of radius `R` with a thin outline. Requires particle fields `x` and `R`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function transparant_disks!(f,ax, cpsO, cfsO)
 
 
@@ -419,6 +582,13 @@ end
 
 
 
+"""
+    disks_type!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by particle `type`. Requires particle fields `x`, `R` and `type`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_type!(f,ax, cpsO, cfsO)
 
 
@@ -435,6 +605,13 @@ function disks_type!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    disks_uw!(f, ax, cpsO, cfsO)
+
+Disks of radius `R` at the *unwrapped* positions `xuw`, coloured by `id`. Requires particle fields `xuw`, `R` and `id`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_uw!(f,ax, cpsO, cfsO)
 
 
@@ -450,6 +627,13 @@ function disks_uw!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    disks_vx!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by the x-component of the velocity (colour range ±0.01). Requires particle fields `x`, `R` and `v`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_vx!(f,ax, cpsO, cfsO)
 
 
@@ -466,6 +650,13 @@ function disks_vx!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    disks_orientation!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by the angle of the polarity `p` in the xy-plane. Requires particle fields `x`, `R` and `p`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_orientation!(f,ax, cpsO, cfsO)
 
 
@@ -481,6 +672,13 @@ function disks_orientation!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    disks_v_orientation!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by the direction of the velocity `v` in the xy-plane. Requires particle fields `x`, `R` and `v`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_v_orientation!(f,ax, cpsO, cfsO)
 
 
@@ -496,6 +694,13 @@ function disks_v_orientation!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    disks_nematic_orientation!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by the nematic angle of the polarity (the angle of `p` doubled, so `p` and `-p` get the same colour). Requires particle fields `x`, `R` and `p`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_nematic_orientation!(f,ax, cpsO, cfsO)
 
 
@@ -511,6 +716,13 @@ function disks_nematic_orientation!(f,ax, cpsO, cfsO)
     return ax
 end
 
+"""
+    disks_vp_phase_difference!(f, ax, cpsO, cfsO)
+
+Disks of radius `R`, coloured by the angle between the velocity `v` and the polarity `p`. Requires particle fields `x`, `R`, `v` and `p`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function disks_vp_phase_difference!(f,ax, cpsO, cfsO)
 
 
@@ -527,6 +739,13 @@ function disks_vp_phase_difference!(f,ax, cpsO, cfsO)
 end
 
 
+"""
+    type_sized_points!(f, ax, cpsO, cfsO)
+
+Particles drawn at their true size (disks in 2D, spheres in 3D), coloured by `type`. Requires particle fields `x`, `R` and `type`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function type_sized_points!(f,ax, cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -554,6 +773,13 @@ function type_sized_points!(f,ax, cpsO, cfsO)
 
 end
 
+"""
+    directors!(f, ax, cpsO, cfsO)
+
+Arrows along the polarity `p` at every particle, coloured by the angle of `p` in the xy-plane. Requires particle fields `x` and `p`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function directors!(f,ax, cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -581,6 +807,13 @@ function directors!(f,ax, cpsO, cfsO)
 
 end
 
+"""
+    nematic_directors!(f, ax, cpsO, cfsO)
+
+Double-headed arrows along `p` and `-p` at every particle, coloured by the nematic angle. Requires particle fields `x` and `p`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function nematic_directors!(f,ax, cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -618,6 +851,13 @@ function nematic_directors!(f,ax, cpsO, cfsO)
 
 end
 
+"""
+    velocity_vectors!(f, ax, cpsO, cfsO)
+
+Arrows along the velocity `v` at every particle, coloured by the direction of `v`. Requires particle fields `x` and `v`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function velocity_vectors!(f,ax,cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -644,6 +884,13 @@ function velocity_vectors!(f,ax,cpsO, cfsO)
     return ax
 end
 
+"""
+    annotate_v!(f, ax, cpsO, cfsO)
+
+The speed `|v|` of every particle as a text label next to it. Requires particle fields `x` and `v`.
+
+Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
+"""
 function annotate_v!(f,ax,cpsO, cfsO)
 
     x = @lift([p_i.x[1] for p_i in $cpsO])
@@ -663,6 +910,11 @@ end
 
 
 
+"""
+    angle2range(angle)
+
+Map an angle in radians to the range `[0, 2π)`.
+"""
 function angle2range(angle)
     if angle>=0
         return angle % (2*pi)

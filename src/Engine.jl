@@ -80,6 +80,29 @@ end
 
 
 export System
+"""
+    System(; sizes, initial_particle_state, forces, dofevolvers, Periodic, rcut_pair_global, kwargs...)
+
+Everything that defines a simulation except the integration settings: the box, the initial
+state, the forces and the DOF evolvers. Pass it to [`Euler_integrator`](@ref).
+
+# Keywords
+
+- `sizes`: box lengths `(Lx, Ly, Lz)`. The box spans `-L/2` to `L/2` in each direction.
+    Always give three lengths; for a 2D simulation, put all particles at `z = 0` and use a
+    small `Lz`.
+- `initial_particle_state`: the particles at `t = 0`, as a [`ParticleState`](@ref)
+- `forces`: tuple of forces, e.g. `(Forces.self_propulsion(1, 0.2), Forces.repulsive_soft_disk(1, 1.0))`.
+    Use a tuple, not a vector: the engine specializes on the exact combination of forces.
+- `dofevolvers`: tuple of DOF evolvers, e.g. `(DOFevolvers.overdamped_xvf(1),)`
+- `Periodic`: `true` for periodic boundary conditions in all directions. With `false`,
+    particles must stay inside the box; the simulation stops with an error if one leaves it.
+- `rcut_pair_global`: cutoff distance for all pair forces. Pairs further apart are never
+    evaluated. It also sets the size of the cells used to find neighbours, so choose it as
+    small as your pair forces allow, e.g. twice the largest radius for soft disks.
+- `initial_field_state`: tuple of fields (**Default**: `()`)
+- `field_updaters`: tuple of field updaters (**Default**: `()`)
+"""
 @kwdef struct System{Tips, Tifs, Tfor , Tfu , Tdof}
 
     #Vector that determines the linear size of the system
@@ -106,6 +129,21 @@ export System
     rcut_pair_global::Float64
 end
 #Output formatter to conveniently chain simulations in one .jl file without the need of intermediate saving to disk
+"""
+    SIM
+
+Result of [`Euler_integrator`](@ref). Use it to inspect the final state, or to start a new
+simulation from where the previous one ended (see *Chaining simulations* in the docs).
+
+# Fields
+
+- `final_particle_state`: particle state at the end of the simulation
+- `final_field_state`: field state at the end of the simulation
+- `dt`: timestep used
+- `t_stop`: end time used
+- `system`: the [`System`](@ref) that was simulated (it still contains the *initial* state)
+- `finished`: `true` if the simulation ran to the end
+"""
 struct SIM{T1, T2, T3, T4}
     final_particle_state::T1
     final_field_state::T2
@@ -287,6 +325,20 @@ Returns SIM struct with final states for chaining simulations.
     (**Default**: `"mp4"`)
 - `sbs`: Set to true for side-by-side plotting, to be used i.c.m. with plotdim=3
     (**Default**: `false`)
+
+# Output files
+
+With `Tsave`, `save_functions` and `save_folder_path` set, three files are written to
+`save_folder_path` (prefixed with `save_tag_` if `save_tag` is given):
+
+- `raw_data.h5`: HDF5 file with the parameters of the system, forces and DOF evolvers, and
+    one group `frames/1`, `frames/2`, ... per saved frame, filled by the `save_functions`
+- `JAMs_container.jld2`: the [`System`](@ref) and integration settings (Julia objects)
+- `JAMs_final_state.jld2`: the final state as a [`JAMS.SIM`](@ref) under the key `"SIM"`
+
+The simulation refuses to start if these files already exist, so nothing is overwritten.
+
+Live plotting (`Tplot`, `plot_functions`) requires `using GLMakie` after `using JAMS`.
 """
 function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_functions=nothing, save_folder_path=nothing, save_tag=nothing, Tplot=nothing, fps=30, plot_functions=nothing,plotdim=2,record_folder_path=nothing,crf=23,res=nothing,format="mp4",sbs=false)
 

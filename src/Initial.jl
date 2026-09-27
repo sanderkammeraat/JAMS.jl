@@ -5,6 +5,15 @@ using LinearAlgebra
 using Distributions
 using Random
 using SparseArrays
+
+"""
+    box(l, Lx, Ly) -> (xs, ys)
+
+Positions spaced roughly `l` apart along the edge of a rectangle of size `Lx × Ly`
+centred on the origin.
+
+Returns two vectors with the x- and y-coordinates.
+"""
 function box(l, Lx, Ly)
 
     x_range = collect(range(-Lx/2, Lx/2,length=trunc(Int64,cld(Lx,l))))
@@ -37,6 +46,14 @@ function box(l, Lx, Ly)
 
 end
 
+"""
+    ring(l, R) -> (xs, ys)
+
+Positions on a circle of radius `R` centred on the origin, spaced an arc length of about
+`l` apart. Returns empty vectors if `R == 0`.
+
+Returns two vectors with the x- and y-coordinates.
+"""
 function ring(l,R)
 
     if R!=0
@@ -55,6 +72,14 @@ function ring(l,R)
 end
 
 
+"""
+    random_in_disk(N, R_out; R_in=0) -> (xs, ys)
+
+`N` random positions distributed uniformly (by area) over a disk of radius `R_out`
+centred on the origin, or over the annulus `R_in ≤ r ≤ R_out` if `R_in > 0`.
+
+Returns two vectors with the x- and y-coordinates.
+"""
 function random_in_disk(N, R_out;R_in=0)
 
 

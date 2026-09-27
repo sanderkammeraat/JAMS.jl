@@ -1,6 +1,23 @@
 module Save
 
 
+"""
+    polar_particle!(current_frame_group, current_particle_state, current_field_state, n, Tsave, t, framecounter)
+
+Save function for [`Particles.Polar`](@ref JAMS.Particles.Polar)-like particles. Pass it to
+[`Euler_integrator`](@ref JAMS.Euler_integrator) as `save_functions=(Save.polar_particle!,)`. Every saved frame,
+it writes these datasets to the frame's HDF5 group:
+
+- `n`, `t`: step number and time
+- `id`, `type`, `R`
+- `x`, `y`, `z`: position
+- `xuw`, `yuw`, `zuw`: unwrapped position
+- `vx`, `vy`, `vz`: velocity
+- `px`, `py`, `pz`: polarity
+- `qx`, `qy`, `qz`: angular velocity
+
+Each dataset has one entry per particle, in the order of the particle state.
+"""
 function polar_particle!(current_frame_group, current_particle_state, current_field_state, n, Tsave, t,framecounter)
 
     current_frame_group["n"] = n
