@@ -26,7 +26,7 @@ julia -t 4
 
 ## An example simulation: Active Brownian particles
 
-This example simulates 1000 active Brownian particles (ABPs) in a periodic 2D box. Each
+This example simulates 1000 Active Brownian particles (ABPs) in a periodic 2D box. Each
 particle moves with a constant speed along its polarity vector, the polarity diffuses
 randomly, and overlapping particles repel each other according to a soft disk force.
 
@@ -137,14 +137,19 @@ is never overwritten. Use a new folder, or set `save_tag` to give the files a pr
 
 ## Live plotting
 
-For live plotting, load GLMakie *after* JAMS:
+First make sure you have installed GLMakie, if not run:
+```julia
+using Pkg
+Pkg.add("GLMakie")
+```
+Then, assuming GLMakie is installed, load GLMakie *after* JAMS:
 
 ```julia
 using JAMS
 using GLMakie
 ```
 This enables the optional live plotting extension of JAMS and compiles it.
-and pass a plot interval and plot functions:
+You can then pass a plot interval and plot functions in the integration step:
 
 ```julia
 sim = Euler_integrator(system, 0.01, 1000.0;

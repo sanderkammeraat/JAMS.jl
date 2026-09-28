@@ -20,6 +20,8 @@ The second is to be performant to run production simulations for actual scientif
 The `examples/` folder of the repository contains complete scripts, such as active
 Brownian particles, active particles in a soft gel, and confined self-aligning particles.
 
+## Table of contents
+
 ```@contents
 Pages = ["getting_started.md", "overview.md", "particles.md", "forces.md", "dofevolvers.md", "live_plotting.md", "save_functions.md", "initial_conditions.md", "extending.md", "api.md"]
 Depth = 2
