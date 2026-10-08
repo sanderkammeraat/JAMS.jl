@@ -74,8 +74,8 @@ function trajectories!(f,ax, cpsO, cfsO)
     lines!(ax, obs, color=color_idx, colorrange=(1, N), colormap=:viridis)
     
     on(cpsO) do particles
-        for i in 1:N
-            p = particles[i]
+        for p in particles
+            i = p.id
             idx = (indices[i] % maxlen) + 1
             indices[i] = idx
             
@@ -730,10 +730,9 @@ function disks_vp_phase_difference!(f,ax, cpsO, cfsO)
     y = @lift([p_i.x[2] for p_i in $cpsO])
 
     c = @lift([ angle( exp(1im* (angle(p_i.v[1]+1im*p_i.v[2]) - angle(p_i.p[1]+1im*p_i.p[2])) ) )  for p_i in $cpsO])
-
     
     s = @lift([2*p_i.R[1]  for p_i in $cpsO])
-    scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1,colormap=:hsv,colorrange=(-pi,pi))
+    scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1,colormap=:seismic,colorrange=(-pi,pi))
 
     return ax
 end

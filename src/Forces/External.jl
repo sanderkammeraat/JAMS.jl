@@ -61,6 +61,24 @@ function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::p
     return p_i
 end
 
+@kwdef struct translational_noise <: ExternalForce
+    ontypes::Union{Int64,Vector{Int64}}
+    Dtarray::SVector{3, Float64} 
+end
+
+
+#continue here...
+function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::translational_noise)
+    if p_i.type in force.ontypes
+
+        eta_x = rand(rngs_particles[p_i.id],Normal(0, 1))*sqrt(2*force.Dtarray[1])* sqrt(dt)/dt 
+        eta_y = rand(rngs_particles[p_i.id],Normal(0, 1))*sqrt(2*force.Dtarray[2])* sqrt(dt)/dt 
+        eta_z = rand(rngs_particles[p_i.id],Normal(0, 1))*sqrt(2*force.Dtarray[3])* sqrt(dt)/dt 
+        p_i.f +=  SVector{3, Float64}(eta_x, eta_y, eta_z)
+    end
+    return p_i
+end
+
 
 """
     self_align_with_v(ontypes, J, unit)

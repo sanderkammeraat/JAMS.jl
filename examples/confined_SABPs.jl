@@ -10,9 +10,9 @@ function relaxation()
     aspect = 1
     Lx = 50. *aspect
     Ly = Lx /aspect^2
-    phi = 1.3
+    phi = 0.9
     poly=15e-2
-    l = 1.5
+    l = 2.0
     xs, ys = Initial.box(l, Lx, Ly)
     Nb = length(xs)
     Rb =rand(Uniform(1-poly, 1+poly),Nb)
@@ -40,7 +40,7 @@ rx=relaxation()
 
 
 function sa_step(rx)
-    forces = (Forces.self_align_with_v(1,0.1,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.01),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
+    forces = (Forces.self_align_with_v(1,5,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.01),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
 
@@ -52,7 +52,7 @@ function sa_step(rx)
 
     system = System(sizes=rx.system.sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=false,rcut_pair_global=rx.system.rcut_pair_global);
 
-    sim = Euler_integrator(system,0.05, 1e4,Tplot=10,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2); 
+    sim = Euler_integrator(system,0.01, 1e4,Tplot=10,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2); 
     return sim;
 
 end

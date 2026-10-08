@@ -873,7 +873,7 @@ function construct_cell_neighbour_list(nbins, Periodic)
                             cell_candidate_index = cx_candidate + Nx* ( (cy_candidate-1) + Ny*(cz_candidate-1)) 
                             cell_index = cx + Nx*( (cy-1) + Ny*(cz-1))
                             #avoid duplicates in case of 1 single cell layer and pbc
-                            if !(cell_candidate_index in cell_neighbour_list[:,cell_index])
+                            @views if !(cell_candidate_index in cell_neighbour_list[:,cell_index])
                                 cell_neighbour_list[neighbour_number,cell_index] = cell_candidate_index
                                 neighbour_number+=1 #This way we fill in order and a 0 in the neighbour list then means no more neighbours
                             end

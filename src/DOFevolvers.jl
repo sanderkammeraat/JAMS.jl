@@ -37,7 +37,7 @@ include("DOFevolvers/Local.jl")
 Supertype of DOF evolvers that need the state of all particles at once. 
 """
 abstract type GlobalDOFevolver <: DOFevolver end
-#include("DOFevolvers/Global.jl")
+include("DOFevolvers/Global.jl")
 
 """
     FieldDOFevolver <: DOFevolver
