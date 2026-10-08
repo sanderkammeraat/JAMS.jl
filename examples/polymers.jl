@@ -42,5 +42,3 @@ function simulation()
 end
 
 simulation()
-
-@profview simulation()
