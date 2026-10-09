@@ -52,7 +52,8 @@ There are currently three kinds of forces, each with its own abstract type:
 - [`Forces.ExternalForce`](@ref): acts on one particle at a time, e.g. self-propulsion,
   noise or an external field. It can be calculated for each particle independently.
 - [`Forces.PairForce`](@ref): acts between two particles closer than `rcut_pair_global`,
-  e.g. soft repulsion. It needs the relative positions of two particles.
+  e.g. soft repulsion, alignment or polymer bonds. It needs the relative positions of
+  two particles.
 - [`Forces.FieldForce`](@ref): acts between particles and fields.
 
 Forces only *add* to `f` and `T`. They never move particles themselves.
@@ -67,6 +68,10 @@ separate, you can reuse the same forces with overdamped or inertial dynamics.
 A position evolver and an orientation evolver are independent, so a typical simulation
 uses both, e.g. [`DOFevolvers.overdamped_xvf`](@ref) and
 [`DOFevolvers.overdamped_pqT_xyc`](@ref).
+
+Local DOF evolvers update one particle at a time. Global DOF evolvers, such as
+[`DOFevolvers.polymer_p_set`](@ref), also use the neighbours of a particle and run after
+the local ones.
 
 ## The box and boundary conditions
 
@@ -86,21 +91,55 @@ plane, such as [`DOFevolvers.overdamped_pqT_xyc`](@ref) for the orientation.
 ## Pair cutoff and neighbour search
 
 Pair forces are only evaluated for pairs closer than `rcut_pair_global`. To find those
-pairs quickly, JAMS divides the box into cells at least `rcut_pair_global` wide, and only
-compares each particle with particles in its own and the neighbouring cells. The cost per
-timestep then grows linearly with the number of particles.
+pairs quickly, JAMS combines cell lists with Verlet neighbour lists:
 
-Choose `rcut_pair_global` as the range of your longest pair force, and no larger:
+1. **Cell list.** The box is divided into cells at least
+   `rverlet = rcut_pair_global * (1 + skinfactor)` wide, so a particle can only be within
+   `rverlet` of particles in its own and the neighbouring cells.
+2. **Verlet neighbour list.** From the cells, JAMS stores for every particle the ids of all
+   particles within `rverlet`. Every timestep, pair forces loop over this list only, and
+   evaluate pairs that are closer than `rcut_pair_global`.
+3. **Rebuilding.** The extra distance `skin = skinfactor * rcut_pair_global` guarantees
+   that the list stays complete while no particle has moved more than `skin / 2`. After
+   every timestep JAMS checks the displacements since the last build, and rebuilds the
+   cells and neighbour lists only when one of them exceeds `skin / 2`.
 
+The cost per timestep then grows linearly with the number of particles, and the neighbour
+search is only redone every so many timesteps. The `skinfactor` keyword of the
+[`System`](@ref) (default `0.3`) sets the trade-off: a larger skin means fewer rebuilds but
+longer lists to loop over every timestep. The default suits most simulations; consider a
+larger value for slow particles and a smaller one for fast particles or large timesteps.
+
+Choose `rcut_pair_global` as the range of your longest pair force, and no larger.
+Examples:
 - for [`Forces.repulsive_soft_disk`](@ref): twice the largest radius
 - for [`Forces.morse`](@ref): the distance where the attraction can be neglected
+- for forces with their own range, such as [`Forces.pairAN`](@ref) or
+  [`Forces.pair_polar_alignment`](@ref): at least that range
+- for [`Forces.polymer_harmonic_bend`](@ref): more than the distance between monomers two
+  places apart along a polymer
 
 A cutoff that is too small silently cuts off interactions; one that is too large gives the
 same result but costs more time.
 
 ## System: how everything comes together.
 
-The [`System`](@ref) struct defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range.
+The [`System`](@ref) struct defines the complete system to be simulated, by collecting the system sizes, initial state, the forces, DOF evolvers and cutoff range. Example:
+
+```julia
+system = System(
+    sizes = (L, L, 1.0),
+    initial_particle_state = initial_state,
+    forces = forces,
+    dofevolvers = dofevolvers,
+    Periodic = true,
+    rcut_pair_global = 2.5,
+    skinfactor = 0.3,   # optional, Verlet skin as a fraction of rcut_pair_global
+)
+```
+
+`initial_field_state`, `field_updaters` and `skinfactor` are optional; see [`System`](@ref)
+for all keywords.
 
 ## Euler_integrator: evolving the system over time
 

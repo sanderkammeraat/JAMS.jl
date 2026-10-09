@@ -4,6 +4,7 @@ makedocs(sitename = "JAMS.jl", remotes = nothing,repo = Remotes.GitHub("sanderka
 format = Documenter.HTML(
         repolink = "https://github.com/sanderkammeraat/JAMS.jl",
         edit_link = "main",
+        footer = "Part of this documentation is written with the help of Claude (Opus 5.5) and reviewed by the author. If you find something unclear or incorrect, please open a Github issue. Powered by [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl) and the [Julia Programming Language](https://julialang.org/).",
     ),
 pages = [
         "Home" => "index.md",

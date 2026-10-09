@@ -61,6 +61,23 @@ function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::p
     return p_i
 end
 
+"""
+    translational_noise(ontypes, Dtarray)
+    translational_noise(; ontypes, Dtarray)
+
+Gaussian white-noise, drawn independently in x, y and z every timestep from the
+particle's own random number generator, per component k:
+`f_k += sqrt(2 Dt_k) η_k sqrt(dt)`, with `η_k` a standard normal random number and
+`Dt_k = Dtarray[k]`.
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on
+- `Dtarray`: noise strength in x, y and z, e.g. `[1.0, 1.0, 0.0]` for diffusion in the
+    xy-plane only
+
+Requires particle fields `id`, `type` and `f`.
+"""
 @kwdef struct translational_noise <: ExternalForce
     ontypes::Union{Int64,Vector{Int64}}
     Dtarray::SVector{3, Float64} 

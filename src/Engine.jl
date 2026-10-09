@@ -61,7 +61,7 @@ end
 
 export System
 """
-    System(; sizes, initial_particle_state, forces, dofevolvers, Periodic, rcut_pair_global, kwargs...)
+    System(; sizes, initial_particle_state, forces, dofevolvers, Periodic, rcut_pair_global, skinfactor=0.3, kwargs...)
 
 Everything that defines a simulation except the integration settings: the box, the initial
 state, the forces and the DOF evolvers. Pass it to [`Euler_integrator`](@ref).
@@ -78,8 +78,13 @@ state, the forces and the DOF evolvers. Pass it to [`Euler_integrator`](@ref).
 - `Periodic`: `true` for periodic boundary conditions in all directions. With `false`,
     particles must stay inside the box; the simulation stops with an error if one leaves it.
 - `rcut_pair_global`: cutoff distance for all pair forces. Pairs further apart are never
-    evaluated. It also sets the size of the cells used to find neighbours, so choose it as
-    small as your pair forces allow, e.g. twice the largest radius for soft disks.
+    evaluated. It also sets the size of the cells and the Verlet radius used to find
+    neighbours, so choose it as small as your pair forces allow, e.g. twice the largest
+    radius for soft disks.
+- `skinfactor`: thickness of the Verlet skin, as a fraction of `rcut_pair_global`
+    (**Default**: `0.3`). Neighbour lists contain all pairs within
+    `rcut_pair_global * (1 + skinfactor)` and are rebuilt once a particle has moved more than
+    half the skin. A larger value means fewer rebuilds but longer lists.
 - `initial_field_state`: tuple of fields (**Default**: `()`)
 - `field_updaters`: tuple of field updaters (**Default**: `()`)
 """
@@ -108,7 +113,7 @@ state, the forces and the DOF evolvers. Pass it to [`Euler_integrator`](@ref).
     #Global cutoff for pairwise interactions
     rcut_pair_global::Float64
 
-    #Verlet list skin = skinfacto * rcut_pair_global
+    #Verlet list skin = skinfactor * rcut_pair_global
     skinfactor::Float64 = 0.3
 end
 #Output formatter to conveniently chain simulations in one .jl file without the need of intermediate saving to disk

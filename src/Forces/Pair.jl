@@ -82,6 +82,34 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
 end
 
+"""
+    polymer_harmonic_stretch(ontypes, internal_repulsion, karray, farray)
+
+Harmonic bond between consecutive monomers of the same polymer (same `pol_id`,
+`id_in_pol` differing by one): `U = k/2 * (r - l)^2`, with `k = karray[type_i, type_j]`.
+The equilibrium bond length is `f * (R_i + R_j)`, with
+`f = farray[type_i, type_j]`; choose `f < 1` for overlapping monomers.
+
+If bonded monomers also repel each other through a soft-disk force of the same stiffness
+(e.g. [`repulsive_soft_disk`](@ref)), set `internal_repulsion = true`. The rest length of
+the spring is then shifted to `l = (2f - 1) * (R_i + R_j)`, so that spring and repulsion
+together still settle at `f * (R_i + R_j)`. With [`polymer_repulsive_soft_disk`](@ref),
+which skips bonded monomers, use `internal_repulsion = false` (then `l = f * (R_i + R_j)`).
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `internal_repulsion`: `true` if bonded monomers also feel a soft-disk repulsion (see above)
+- `karray`: bond stiffness, a matrix indexed by the two particle types
+- `farray`: bond length as a fraction of `R_i + R_j`, a matrix indexed by the two particle types
+
+A plain number instead of a matrix only works if all particles have type `1`.
+
+Requires particle fields `type`, `pol_id`, `id_in_pol`, `R` and `f`, e.g.
+[`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer). Set `rcut_pair_global`
+larger than the longest bond.
+"""
 struct polymer_harmonic_stretch{T1,T2}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     internal_repulsion::Bool
@@ -116,6 +144,32 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
     return p_i
 end
 
+"""
+    polymer_harmonic_bend(ontypes, karray)
+
+Bending stiffness of a polymer, from the discrete bending energy
+
+`U = k/4 * Σ_n |R_{n+1} - R_{n}|^2`,
+
+summed over the inner monomers `n = 0, …, pol_N - 2` of each polymer, with
+`k = karray[type_i, type_j]`. For bonds of fixed length `b` this is
+`U = k b^2 / 2 * Σ_n (1 - cos θ_n)`, with `θ_n` the angle between consecutive bonds, so a
+straight polymer has the lowest energy. The force on a monomer comes from the monomers up
+to two places away along the same polymer, including the special cases at the two ends.
+Only use this for polymers with 5 or more monomers!
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `karray`: bending stiffness, a matrix indexed by the two particle types. A plain number
+    only works if all particles have type `1`.
+
+Requires particle fields `type`, `pol_id`, `id_in_pol`, `pol_N` and `f`, e.g.
+[`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer), and polymers of at least 4
+monomers. Pair forces are only evaluated within `rcut_pair_global`, so set it larger than
+the distance between second neighbours along a polymer (about two bond lengths).
+"""
 struct polymer_harmonic_bend{T1}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
@@ -209,6 +263,34 @@ end
     return p_i
 end
 
+"""
+    polymer_pair_polar_nematic(ontypes, bundles, rfact, v0)
+
+Active pair force between monomers of *different* polymers that are closer than
+`r_c = rfact * (R_i + R_j)`. The strength decreases linearly with distance,
+`β = 1 - r / r_c`, and the force is directed along the polarities `p` (for polymers, the
+local tangent set by [`DOFevolvers.polymer_p_set`](@ref JAMS.DOFevolvers.polymer_p_set)):
+
+`f_i += β v0 (p_i - p_j)`
+
+If `bundles` is `true`, the antiparallel rule `f_i += β v0 (p_i - p_j)` is used for all
+pairs, so parallel monomers feel no force and form nonmotile bundles.
+
+However, if `bundles` is `false`, for parallel polymers, we use f_i += β v0 (p_i + p_j) * sign_ij, with 
+sign_ij = sign(p_i.pol_id - p_j.pol_id). 
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `bundles`: if `true`, use the antiparallel rule for all pairs (see above)
+- `rfact`: interaction range, as a multiple of `R_i + R_j`
+- `v0`: force strength 
+
+Requires particle fields `type`, `pol_id`, `R`, `p` and `f`, e.g.
+[`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer). Set `rcut_pair_global` to at
+least `rfact` times the largest `R_i + R_j`.
+"""
 struct polymer_pair_polar_nematic<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     bundles::Bool
@@ -256,6 +338,24 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
 end
 
+"""
+    polymer_repulsive_soft_disk(ontypes, karray)
+
+Same harmonic repulsion as [`repulsive_soft_disk`](@ref), `U = k/2 * (R_i + R_j - r_ij)^2`
+for overlapping particles, except between bonded monomers (consecutive monomers of the
+same polymer), which may overlap freely. Use it together with
+[`polymer_harmonic_stretch`](@ref) with `internal_repulsion = false`.
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `karray`: stiffness, a matrix indexed by the two particle types. A plain number only
+    works if all particles have type `1`.
+
+Requires particle fields `type`, `pol_id`, `id_in_pol`, `R` and `f`, e.g.
+[`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer).
+"""
 struct polymer_repulsive_soft_disk{T1}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
@@ -276,6 +376,18 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
 end
 
+"""
+    polymer_pairAN(ontypes, torque, traceless, intrapol, rfact, k_par, k_per, parray)
+
+[`pairAN`](@ref) between monomers of *different* polymers only. See [`pairAN`](@ref) for
+the force and the meaning of `torque`, `traceless`, `rfact`, `k_par`, `k_per` and `parray`.
+
+The field `intrapol` is stored but not used yet: monomers of the same polymer never
+interact through this force.
+
+Requires particle fields `type`, `pol_id`, `R`, `p`, `f` (and `T` if `torque` is `true`),
+e.g. [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer).
+"""
 struct polymer_pairAN{T1,T2, T3}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     torque::Bool
@@ -351,6 +463,38 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
 end
 
+"""
+    pairAN(ontypes, torque, traceless, rfact, k_par, k_per, parray)
+
+Pairwise force from active nematic stresses, between particles closer than
+`r_c = rfact * (R_i + R_j)`. Every particle carries an active stress
+`σ = s_i Q_i`, with
+strength `s_i = parray[type]`. The force on `i` is
+
+`f_i += β [k_par (σ_i + σ_j) ⋅ dx + k_per (σ_i + σ_j) ⋅ (dx × ẑ)]`,
+
+with `dx = x_j - x_i` and `β = 1 - r / r_c`.
+
+If `torque` is `true`, the force also gives a torque `T_i += (dx / 2) × f_i`, as if it
+acted at the midpoint between the particles.
+
+The traceless stress and the perpendicular direction `dx × ẑ` assume particles in
+the xy-plane.
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `torque`: if `true`, also add the torque `(dx / 2) × f_i`
+- `traceless`: if `true`, use the traceless stress `s (p p - I/2)`
+- `rfact`: interaction range, as a multiple of `R_i + R_j`
+- `k_par`: strength of the force along `dx` (a number)
+- `k_per`: strength of the force perpendicular to `dx` (a number)
+- `parray`: active stress strength `p`, a vector indexed by particle type. 
+
+Requires particle fields `type`, `R`, `p`, `f` (and `T` if `torque` is `true`). Set
+`rcut_pair_global` to at least `rfact` times the largest `R_i + R_j`.
+"""
 struct pairAN{T1,T2, T3}<: PairForce
     ontypes::Union{Int64,Vector{Int64}}
     torque::Bool
@@ -426,6 +570,23 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 end
 
 
+"""
+    pair_nematic_alignment(ontypes, rcut, J)
+
+Nematic alignment torque between particles closer than `rcut`:
+`T_i += J (p_i × p_j) (p_i ⋅ p_j)`. In the xy-plane this is `J/2 sin(2(θ_j - θ_i))`
+about z, which aligns `p_i` with either `p_j` or `-p_j`, whichever is closer.
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `rcut`: interaction range. Pairs further apart than `rcut_pair_global` are never
+    evaluated, so a larger `rcut` has no effect.
+- `J`: alignment strength
+
+Requires particle fields `type`, `p` and `T`.
+"""
 struct pair_nematic_alignment<: PairForce
     ontypes::Union{Int64,Vector{Int64}}
     rcut::Float64
@@ -446,6 +607,23 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt, rngs_particles, system
 
 end
 
+"""
+    pair_polar_alignment(ontypes, rcut, J)
+
+Polar alignment torque between particles closer than `rcut`:
+`T_i += J (p_i × p_j)`. In the xy-plane this is `J sin(θ_j - θ_i)` about z, which rotates
+`p_i` towards `p_j`.
+
+# Fields
+
+- `ontypes`: particle type (`Int`) or types (`Vector{Int}`) this force acts on. Both
+    particles must have a type in `ontypes`.
+- `rcut`: interaction range. Pairs further apart than `rcut_pair_global` are never
+    evaluated, so a larger `rcut` has no effect.
+- `J`: alignment strength
+
+Requires particle fields `type`, `p` and `T`.
+"""
 struct pair_polar_alignment<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     rcut::Float64

@@ -51,6 +51,27 @@ diameter of the inner particles, so none can slip through. See `examples/confine
 | [`Initial.box`](@ref) | positions along the edge of a rectangle, spaced about `l` apart |
 | [`Initial.ring`](@ref) | positions on a circle, spaced an arc length of about `l` apart |
 | [`Initial.random_in_disk`](@ref) | `N` random positions spread uniformly over a disk or annulus |
+| [`Initial.stacked_polymers_at_angle`](@ref) | straight polymers filling a periodic box at a given packing fraction, with their polymer ids, positions along the polymer and the box size |
+
+## Polymers
+
+[`Initial.stacked_polymers_at_angle`](@ref) returns more than positions: also the polymer
+id and position along the polymer of every monomer, and the box size `L` that gives the
+requested packing fraction. Use them to build [`Particles.PolarPolymer`](@ref)s:
+
+```julia
+N_in_pol = 10
+x, y, radii, pol_ids, ids_in_pol, L, Npols = Initial.stacked_polymers_at_angle(N_in_pol, 1.0, 0.9, 0.75, 80.0)
+
+initial_state = ParticleState([
+    Particles.PolarPolymer(id=i, type=1, pol_id=pol_ids[i], id_in_pol=ids_in_pol[i], pol_N=N_in_pol,
+        R=radii[i], x=[x[i], y[i], 0.0], p=normalize([randn(), randn(), 0.0]))
+    for i in 1:Npols*N_in_pol
+])
+sizes = (L, L, 2.0)   # with Periodic = true
+```
+
+See `examples/polymers.jl` for a complete script.
 
 ## Reference
 
@@ -58,4 +79,5 @@ diameter of the inner particles, so none can slip through. See `examples/confine
 Initial.box
 Initial.ring
 Initial.random_in_disk
+Initial.stacked_polymers_at_angle
 ```

@@ -53,6 +53,13 @@ subtype of [`DOFevolvers.LocalDOFevolver`](@ref) and add a method to
 `DOFevolvers.evolve_locally!`. It must reset the forces or torques it used, otherwise they
 keep adding up over the timesteps.
 
+## A custom global DOF evolver
+
+A global DOF evolver needs the state of other particles, for example its neighbours.
+Define a subtype of [`DOFevolvers.GlobalDOFevolver`](@ref) and add a method to
+`DOFevolvers.evolve_globally!`. It receives the current particle and field state and the Verlet
+neighbour list, and returns the updated particle and field state.
+
 ## A custom particle type
 
 If you need extra degrees of freedom or parameters, define your own particle type. It must
@@ -66,6 +73,9 @@ have at least these fields, which the engine uses:
 | `xuw` | `SVector{3,Float64}` | unwrapped position, set to `x` at `t = 0` |
 | `f` | `SVector{3,Float64}` | total force, reset at `t = 0` |
 | `T` | `SVector{3,Float64}` | total torque, reset at `t = 0` |
+
+The polymer forces and [`DOFevolvers.polymer_p_set`](@ref) also need `pol_id`,
+`id_in_pol` and `pol_N`, as in [`Particles.PolarPolymer`](@ref).
 
 ## A custom save function
 

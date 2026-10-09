@@ -94,7 +94,36 @@ function random_in_disk(N, R_out;R_in=0)
 
 end
 
-#Thanks to Gabriel Martin
+
+"""
+    stacked_polymers_at_angle(N_in_pol, R, pf, f_eq_stretch_force, L_0; tilt_angle=nothing, random_polarity=false)
+        -> (x, y, radii, pol_ids, ids_in_pol, L, Npols)
+
+Credit: G. Martin. 
+Straight polymers of `N_in_pol` monomers of radius `R` in a periodic square box, at
+packing fraction `pf`. Consecutive monomers are `2R * f_eq_stretch_force` apart (use the
+same value as `farray` in [`Forces.polymer_harmonic_stretch`](@ref JAMS.Forces.polymer_harmonic_stretch)),
+and the overlap between them is taken into account in the packing fraction.
+
+The number of polymers `Npols` is chosen so that the box side `L` is close to `L_0`. The
+polymers are placed end to end along one long line at angle `tilt_angle` to the x-axis,
+wrapped around the periodic box. By default `tilt_angle` is chosen so that the wrapped line
+spreads the polymers evenly over the box. Polymer ids are assigned in random order. If
+`random_polarity` is `true`, the monomer order of each polymer is reversed with probability
+1/2, so the polarity of those polymers (see [`DOFevolvers.polymer_p_set`](@ref JAMS.DOFevolvers.polymer_p_set))
+points the other way.
+
+Returns the x- and y-coordinates, radii, polymer ids and positions along the polymer of all
+`Npols * N_in_pol` monomers, plus the box side `L` and `Npols`. Use `L` for the box size
+and set `Periodic = true`:
+
+```julia
+x, y, radii, pol_ids, ids_in_pol, L, Npols = Initial.stacked_polymers_at_angle(10, 1.0, 0.9, 0.75, 80.0)
+initial_state = ParticleState([Particles.PolarPolymer(id=i, type=1, pol_id=pol_ids[i],
+    id_in_pol=ids_in_pol[i], pol_N=10, R=radii[i], x=[x[i], y[i], 0.0], p=[1.0, 0.0, 0.0])
+    for i in 1:Npols*10])
+```
+"""
 function stacked_polymers_at_angle(N_in_pol, R, pf, f_eq_stretch_force, L_0; tilt_angle = nothing, random_polarity = false)
 
     # initialization
