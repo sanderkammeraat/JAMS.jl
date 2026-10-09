@@ -8,7 +8,7 @@ using Test
     forces = (Forces.self_align_with_v(1,0.1,false),Forces.self_propulsion(1,0.2),Forces.planar_rotational_noise(ontypes=1,Dr=.1),Forces.repulsive_soft_disk(1,1.),);
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1));
     N=10;
-    ϕ = 1.0;
+    ϕ = 0.3;
     poly=15e-2;
     Rs =rand(Uniform(1-poly, 1+poly),N);
     L =  sqrt(pi *sum(Rs.^2) / ϕ);
