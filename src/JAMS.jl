@@ -24,12 +24,13 @@ function GLMakie_window_closeall end
 
 include("Particles.jl")
 include("Forces.jl")
-include("DOFevolvers.jl")
 include("Fields.jl")
 include("FieldUpdaters.jl")
 include("Save.jl")
 include("LPlot.jl")
 include("Initial.jl")
+include("NeighbourFinding.jl")
+include("DOFevolvers.jl")
 
 
 #Make structs available to user

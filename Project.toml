@@ -3,6 +3,9 @@ uuid = "aca068aa-23e3-4377-9173-0245f9003f3d"
 version = "1.0.0-DEV"
 authors = ["Sander Kammeraat <sanderkammeraat1212@gmail.com> and contributors"]
 
+[workspace]
+projects = ["docs"]
+
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -32,6 +35,3 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
-
-[workspace]
-projects = ["docs"]

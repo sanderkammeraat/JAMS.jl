@@ -4,7 +4,7 @@ using LinearAlgebra
 using Distributions
 using Random
 using SparseArrays
-
+using ..JAMS: minimal_image_difference
 
 """
     DOFevolver

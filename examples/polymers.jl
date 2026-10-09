@@ -20,9 +20,9 @@ function simulation()
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.polymer_p_set(1))
 
-    pf = 0.8
+    pf = 0.9
     R = 1
-    L_0 = 50
+    L_0 = 80
 
     x, y, radii, pol_ids, ids_in_pol, L, Npols = Initial.stacked_polymers_at_angle(N_in_pol, R, pf, f_eq_stretch_force, L_0, random_polarity = false)
 
@@ -36,7 +36,7 @@ function simulation()
     
     system =  System(sizes=sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=true,rcut_pair_global=6.)
 
-    sim = Euler_integrator(system, 0.01, 1e3, fps=60, Tplot=10, plot_functions =  (LPlot.polymers!, LPlot.nematic_directors! ,LPlot.velocity_vectors!));#, record_folder_path = pwd()); 
+    sim = Euler_integrator(system, 0.01, 1e4, fps=60, Tplot=10, plot_functions =  (LPlot.polymers!, LPlot.nematic_directors! ,LPlot.velocity_vectors!));#, record_folder_path = pwd()); 
     return sim;
 
 end

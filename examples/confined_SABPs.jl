@@ -40,7 +40,7 @@ rx=relaxation()
 
 
 function sa_step(rx)
-    forces = (Forces.self_align_with_v(1,5,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.01),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
+    forces = (Forces.self_align_with_v(1,1,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.0001),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
 
