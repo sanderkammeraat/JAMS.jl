@@ -4,3 +4,6 @@ JAMS = "aca068aa-23e3-4377-9173-0245f9003f3d"
 
 [sources]
 JAMS = {path = ".."}
+
+[compat]
+Documenter = "1.19.0"
