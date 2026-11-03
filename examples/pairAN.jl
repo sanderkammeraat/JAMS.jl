@@ -29,7 +29,7 @@ function simulation()
 
     system = System(sizes=sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=true,rcut_pair_global=4.);
     
-    sim = Euler_integrator(system,0.05, 1e4,Tplot=10,fps=60,plot_functions=(LPlot.disks_nematic_orientation!,LPlot.directors!),plotdim=2); 
+    sim = Euler_integrator(system,0.05, 1e4,Tplot=10,fps=60,plot_functions=(LPlot.disks_nematic_orientation!,LPlot.nematic_directors!),plotdim=2); 
     return sim;
 
 end

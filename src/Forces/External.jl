@@ -133,3 +133,25 @@ function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::se
     end 
     return p_i
 end
+
+
+struct nematic_self_align_with_v <: ExternalForce
+    ontypes::Union{Int64,Vector{Int64}}
+    J::Float64
+    unit::Bool
+end
+
+function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::nematic_self_align_with_v)
+    if p_i.type in force.ontypes
+        
+        if !force.unit
+            p_i.T+= force.J*cross(p_i.p,  p_i.v) .* sign(dot(p_i.p, p_i.v))
+        else
+            vnorm = norm(p_i.v)
+            if vnorm!=0
+                p_i.T += force.J*cross(p_i.p,  p_i.v)./vnorm .* sign(dot(p_i.p, p_i.v))
+            end
+        end
+    end 
+    return p_i
+end
