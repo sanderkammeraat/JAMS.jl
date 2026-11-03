@@ -30,6 +30,14 @@ generator of this particle and `system` the [`System`](@ref JAMS.System).
 abstract type ExternalForce <:Force end
 include("Forces/External.jl")
 
+
+
+#Helper function for flexible particle interactions encoding
+function get_param_ind(force_types, particle_type)
+    return findfirst(isequal(particle_type),force_types)
+end
+
+
 """
     PairForce <: Force
 
@@ -47,6 +55,11 @@ must only change `p_i`.
 """
 abstract type PairForce <:Force end
 include("Forces/Pair.jl")
+
+
+
+
+
 
 """
     FieldForce <: Force

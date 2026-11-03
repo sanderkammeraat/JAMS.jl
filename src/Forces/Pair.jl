@@ -29,7 +29,7 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
         d2R = p_i.R+p_j.R
         if dxn < d2R
 
-            p_i.f += force.karray[p_i.type,p_j.type] .* (dxn-d2R) .* dx/dxn
+            p_i.f += force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] .* (dxn-d2R) .* dx/dxn
         end
     end
     return p_i
@@ -72,9 +72,8 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
     if p_i.type in force.ontypes && p_j.type in force.ontypes
         re = p_i.R+p_j.R
 
-        a = force.aarray[p_i.type,p_j.type]
-        De = force.Dearray[p_i.type,p_j.type]
-
+        a = force.aarray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]
+        De = force.Dearray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]
         p_i.f += -2 * De*a*( exp(-2a*(dxn-re)) - exp(-a*(dxn-re)) ) * dx/dxn
 
     end
@@ -129,7 +128,7 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
                 d2R = p_i.R+p_j.R
 
-                f_factor = force.farray[p_i.type,p_j.type]
+                f_factor = force.farray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]
                 
                 if force.internal_repulsion
                     l_stretch = d2R*(2*f_factor - 1)
@@ -137,7 +136,7 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
                     l_stretch = d2R*f_factor
                 end
 
-                p_i.f+= force.karray[p_i.type,p_j.type] * (dxn-l_stretch) * dx/dxn
+                p_i.f+= force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] * (dxn-l_stretch) * dx/dxn
             end
         end
     end
@@ -188,11 +187,11 @@ end
 
                 if p_j.id_in_pol==p_i.id_in_pol+2 || p_j.id_in_pol==p_i.id_in_pol-2
 
-                    p_i.f+= - force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= - force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==p_i.id_in_pol+1 || p_j.id_in_pol==p_i.id_in_pol-1
 
-                    p_i.f+= 4 * force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 4 * force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 end
 
@@ -201,11 +200,11 @@ end
 
                 if p_j.id_in_pol==3
 
-                    p_i.f+= - force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= - force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==2
 
-                    p_i.f+= 2 * force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 2 * force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 end
         
@@ -214,11 +213,11 @@ end
 
                 if p_j.id_in_pol==p_i.pol_N-2
 
-                    p_i.f+= - force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= - force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==p_i.pol_N-1
 
-                    p_i.f+= 2 * force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 2 * force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 end
 
@@ -228,15 +227,15 @@ end
 
                 if p_j.id_in_pol==4
 
-                    p_i.f+= - force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= - force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==3
 
-                    p_i.f+= 4 *  force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 4 *  force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==1
 
-                    p_i.f+= 2 *  force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 2 *  force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 end
 
@@ -245,15 +244,15 @@ end
 
                 if p_j.id_in_pol==p_i.pol_N-3 #0   4
 
-                    p_i.f+= - force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= - force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==p_i.pol_N-2 #1  3
 
-                    p_i.f+= 4 *  force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 4 *  force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 elseif p_j.id_in_pol==p_i.pol_N #3   1
 
-                    p_i.f+= 2 *  force.karray[p_i.type,p_j.type]/2 * dx
+                    p_i.f+= 2 *  force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]/2 * dx
 
                 end
             end
@@ -367,7 +366,7 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
         d2R = p_i.R+p_j.R
             if dxn < d2R
 
-                p_i.f += force.karray[p_i.type,p_j.type] * (dxn-d2R) * dx/dxn
+                p_i.f += force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)] * (dxn-d2R) * dx/dxn
 
             end
         end
@@ -424,27 +423,27 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
                 sigma_j_dot_dx_perp = @MVector zeros(length(dx))
                     
                 if force.traceless
-                    sigma_i_dot_dx = force.parray[p_i.type] * ( dot(p_i.p,dx) .* p_i.p - 0.5 * dx)
+                    sigma_i_dot_dx = force.parray[get_param_ind(force.ontypes, p_i.type)] * ( dot(p_i.p,dx) .* p_i.p - 0.5 * dx)
 
-                    sigma_j_dot_dx = force.parray[p_j.type] * ( dot(p_j.p, dx) .* p_j.p - 0.5 * dx)
+                    sigma_j_dot_dx = force.parray[get_param_ind(force.ontypes, p_j.type)] * ( dot(p_j.p, dx) .* p_j.p - 0.5 * dx)
 
 
 
-                    sigma_i_dot_dx_perp = force.parray[p_i.type] *  (dot(p_i.p,cross(dx,z_hat)) .* p_i.p - 0.5 * cross(dx,z_hat)) 
+                    sigma_i_dot_dx_perp = force.parray[get_param_ind(force.ontypes, p_i.type)] *  (dot(p_i.p,cross(dx,z_hat)) .* p_i.p - 0.5 * cross(dx,z_hat)) 
 
-                    sigma_j_dot_dx_perp = force.parray[p_j.type] *  (dot(p_j.p,cross(dx,z_hat)).* p_j.p- 0.5 * cross(dx,z_hat)) 
+                    sigma_j_dot_dx_perp = force.parray[get_param_ind(force.ontypes, p_j.type)] *  (dot(p_j.p,cross(dx,z_hat)).* p_j.p- 0.5 * cross(dx,z_hat)) 
 
 
                 else
                     #par
-                    sigma_i_dot_dx = force.parray[p_i.type] * dot(p_i.p,dx) .* p_i.p 
+                    sigma_i_dot_dx = force.parray[get_param_ind(force.ontypes, p_i.type)] * dot(p_i.p,dx) .* p_i.p 
 
-                    sigma_j_dot_dx = force.parray[p_j.type] * dot(p_j.p, dx) .* p_j.p
+                    sigma_j_dot_dx = force.parray[get_param_ind(force.ontypes, p_j.type)] * dot(p_j.p, dx) .* p_j.p
 
                     # perp
-                    sigma_i_dot_dx_perp = force.parray[p_i.type] *  dot(p_i.p,cross(dx,z_hat)) .* p_i.p
+                    sigma_i_dot_dx_perp = force.parray[get_param_ind(force.ontypes, p_i.type)] *  dot(p_i.p,cross(dx,z_hat)) .* p_i.p
 
-                    sigma_j_dot_dx_perp = force.parray[p_j.type] *  dot(p_j.p,cross(dx,z_hat)).* p_j.p
+                    sigma_j_dot_dx_perp = force.parray[get_param_ind(force.ontypes, p_j.type)] *  dot(p_j.p,cross(dx,z_hat)).* p_j.p
 
                 end
 
@@ -533,27 +532,27 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
 
 
             if force.traceless
-                sigma_i_dot_dx.= force.parray[p_i.type] .* ( dot(p_i.p,dx) .* p_i.p - 0.5 .* dx)
+                sigma_i_dot_dx.= force.parray[get_param_ind(force.ontypes, p_i.type)] .* ( dot(p_i.p,dx) .* p_i.p - 0.5 .* dx)
 
-                sigma_j_dot_dx.= force.parray[p_j.type] .* ( dot(p_j.p, dx) .* p_j.p - 0.5 .* dx)
+                sigma_j_dot_dx.= force.parray[get_param_ind(force.ontypes, p_j.type)] .* ( dot(p_j.p, dx) .* p_j.p - 0.5 .* dx)
 
 
 
-                sigma_i_dot_dx_perp.= force.parray[p_i.type] .*  (dot(p_i.p, cross(dx,z_hat)) .* p_i.p - 0.5 .* cross(dx, z_hat)) 
+                sigma_i_dot_dx_perp.= force.parray[get_param_ind(force.ontypes, p_i.type)] .*  (dot(p_i.p, cross(dx,z_hat)) .* p_i.p - 0.5 .* cross(dx, z_hat)) 
 
-                sigma_j_dot_dx_perp.= force.parray[p_j.type] .*  (dot(p_j.p, cross(dx,z_hat)).* p_j.p- 0.5 .* cross(dx, z_hat)) 
+                sigma_j_dot_dx_perp.= force.parray[get_param_ind(force.ontypes, p_j.type)] .*  (dot(p_j.p, cross(dx,z_hat)).* p_j.p- 0.5 .* cross(dx, z_hat)) 
 
 
             else
                 #par
-                sigma_i_dot_dx.= force.parray[p_i.type] .* dot(p_i.p,dx) .* p_i.p 
+                sigma_i_dot_dx.= force.parray[get_param_ind(force.ontypes, p_i.type)] .* dot(p_i.p,dx) .* p_i.p 
 
-                sigma_j_dot_dx.= force.parray[p_j.type] .* dot(p_j.p, dx) .* p_j.p
+                sigma_j_dot_dx.= force.parray[get_param_ind(force.ontypes, p_j.type)] .* dot(p_j.p, dx) .* p_j.p
 
                 # perp
-                sigma_i_dot_dx_perp.= force.parray[p_i.type] .*  dot(p_i.p,cross(dx,z_hat)) .* p_i.p
+                sigma_i_dot_dx_perp.= force.parray[get_param_ind(force.ontypes, p_i.type)] .*  dot(p_i.p,cross(dx,z_hat)) .* p_i.p
 
-                sigma_j_dot_dx_perp.= force.parray[p_j.type] .*  dot(p_j.p,cross(dx,z_hat)).* p_j.p
+                sigma_j_dot_dx_perp.= force.parray[get_param_ind(force.ontypes, p_j.type)] .*  dot(p_j.p,cross(dx,z_hat)).* p_j.p
 
             end
             f= β .*  ( force.k_par .* (sigma_i_dot_dx .+ sigma_j_dot_dx )  .+ force.k_per .* (sigma_i_dot_dx_perp .+ sigma_j_dot_dx_perp ))

@@ -129,6 +129,56 @@ end
 
 
 
+#Thanks to Nina Cankilic, Chinmay Pabshettiwar and Silke Henkes
+#[Reference to MSc thesis to be inserted]
+@kwdef struct GBEllipses<:Particle
+
+
+    id::Int64
+    type::Int64
+    
+    m::Float64   = 1.0
+    zeta::Float64 = 1.0
+    
+    zeta_R::Float64 = 1.0
+
+    R::Float64   = 1.0
+
+    x::SVector{3, Float64}
+    xuw::SVector{3, Float64} = @SVector [0.0, 0.0, 0.0]
+
+    v::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+    f::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+
+    p::SVector{3, Float64}                                  #polarity vector
+    q::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #angular velocity (so for particles in xy this is in z)
+    T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
+
+    stress::MMatrix{2,2,Float64}
+
+    Lambda::MMatrix{2,2,Float64}
+    Lambda0::MMatrix{2,2,Float64}
+
+    semi_major::Float64
+
+    semi_minor::Float64
+
+    mu_alpha::Float64
+    sigma_0::Float64 = 2.0
+
+    aspect_ratio::Float64
+
+    K::Float64
+    mu::Float64
+    tau::Float64
+    
+    
+
+
+end
+
+
+
     
 
 #module end
