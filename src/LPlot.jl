@@ -512,52 +512,23 @@ end
 
 
 """
-    ellipse(p_i) -> (xs, ys)
-
-Outline of the ellipse used by [`ellipses!`](@ref) for particle `p_i`.
-"""
-function ellipse(p_i)
-
-    lmda_major = 0.5*(p_i.Lambda[1,1]+p_i.Lambda[2,2]) + sqrt(0.25*(p_i.Lambda[1,1]-p_i.Lambda[2,2])^2 + p_i.Lambda[1,2]^2)
-
-    lmda_minor =0.5*(p_i.Lambda[1,1]+p_i.Lambda[2,2]) -sqrt(0.25*(p_i.Lambda[1,1]-p_i.Lambda[2,2])^2 + p_i.Lambda[1,2]^2)
-
-    s = range(0, 2pi, length=40)
-
-    x_e = lmda_major .* cos.(s)
-
-    y_e = lmda_minor .* sin.(s)
-
-   x_e_rot = p_i.p[1] * x_e  - p_i.p[2] * y_e
-   y_e_rot= p_i.p[2] * x_e  + p_i.p[1] *  y_e
-
-   return p_i.x[1] .+ x_e_rot, p_i.x[2] .+ y_e_rot
-
-end
-
-
-
-"""
     ellipses!(f, ax, cpsO, cfsO)
 
 Particles drawn as ellipses whose axes are the eigenvalues of the 2×2 shape tensor `Lambda`, rotated along the polarity `p`. Requires particle fields `x`, `p` and `Lambda`.
 
 Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
 """
-function ellipses!(f,ax, cpsO, cfsO)
+function ellipses!(f, ax, cpsO, cfsO)
+    pos    = @lift [Point2f(p_i.x[1], p_i.x[2]) for p_i in $cpsO]
+    sizes  = @lift [Vec2f(2p_i.semi_major, 2p_i.semi_minor) for p_i in $cpsO]
+    angles = @lift [Float32(atan(p_i.p[2], p_i.p[1])) for p_i in $cpsO]
+    colors = @lift [Float32(p_i.semi_major / p_i.semi_minor) for p_i in $cpsO]
 
-    xs = @lift([ ellipse( p_i )[1] for p_i in $cpsO])
-    ys = @lift([ ellipse( p_i )[2] for p_i in $cpsO])
-
-
-    for i=1:length(cpsO[])
-
-        xsi = @lift( $xs[i])
-        ysi = @lift($ys[i])
-
-        poly!(ax, xsi, ysi, color=i, colorrange=(1,length(cpsO[])),alpha=0.7, strokecolor=:black, strokewidth=2)
-    end
-
+    aspect_ratio0 = cpsO[][1].aspect_ratio0
+    scatter!(ax, pos; marker=Circle, markerspace=:data,
+             markersize=sizes, rotation=angles,
+             color=colors, colorrange=(aspect_ratio0 - 0.5, aspect_ratio0 + 0.5), colormap=:rainbow,
+             alpha=0.7, strokecolor=:black, strokewidth=2)
     return ax
 end
 

@@ -647,3 +647,221 @@ end
 
 
 
+
+@kwdef struct repulsive_soft_ellipse{T1, T2} <: PairForce
+    ontypes::Union{Int64,Vector{Int64}}
+    epsilonarray::T1
+    betaarray::T2
+end
+
+#The current implementation according to the original definition does not take into account interaction between ellipses with different sigma_0 !
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::repulsive_soft_ellipse)
+
+
+    if p_i.type in force.ontypes && p_j.type in force.ontypes
+
+        sigma_e = p_i.semi_major + p_j.semi_major
+
+        sigma_s = p_i.semi_minor + p_j.semi_minor
+
+        sigma_0 = p_i.sigma_0
+
+        ratio2 = (sigma_e/sigma_s)^2
+
+        #note that dx is oppositive sign to notes, so we define a help variable
+        rvec = - dx
+
+
+        rdotu1 = dot(p_i.p, rvec)
+
+        rdotu2 = dot(p_j.p, rvec)
+
+        u1dotu2 = dot(p_i.p , p_j.p) 
+
+        chi = (  ratio2 - 1  ) / ( ratio2 + 1 )
+
+        dots_add = rdotu1 + rdotu2
+        dots_sub = rdotu1 - rdotu2
+
+        chi_sub = 1 - chi * u1dotu2
+
+        chi_add = 1 + chi * u1dotu2
+
+        common_shape = dots_add^2/chi_add + dots_sub^2/chi_sub
+
+        sigma_arg = 1 - 1/2 * chi/dxn^2 * common_shape
+
+        sigma = sigma_0 * sigma_arg^(-1/2) * ( (1 - chi)/ (1+ chi) )^(1/4)
+
+
+        if dxn < sigma
+
+            epsilon = force.epsilonarray[get_param_ind(force.ontypes, p_i.type),get_param_ind(force.ontypes, p_j.type)]
+
+            beta =  force.betaarray[get_param_ind(force.ontypes, p_i.type), get_param_ind(force.ontypes, p_j.type)]
+
+            common_force = - epsilon * (dxn - sigma) ^ (beta - 1)
+            rx = rvec[1]
+            ry = rvec[2]
+            r = dxn
+            u1x = p_i.p[1]
+            u1y = p_i.p[2]
+
+            u2x = p_j.p[1]
+            u2y = p_j.p[2]
+
+            r2 = dxn^2
+            
+            geom_x = (rx / dxn - (chi * sigma^3)/ (2 * sigma_0^2 * ((1+chi)/(1-chi))^(-1/2) ) * 
+            (-rx/(r2^2)*common_shape+1/r2 * (dots_add/chi_add * (u1x + u2x) +dots_sub/chi_sub * (u1x - u2x)) ) )
+
+            geom_y = (ry / dxn - (chi * sigma^3) / (2* sigma_0^2 * ((1+chi) / (1-chi))^(-1.2) ) * (-ry / (r2^2) * common_shape + 1.0 / r2 * (dots_add / chi_add * (u1y + u2y) + dots_sub / chi_sub * (u1y - u2y)) ))
+
+            fx = common_force * geom_x
+            fy = common_force * geom_y
+
+            common_du = - (0.25 * chi * sigma_0 * ((1+chi) / (1-chi))^(-1/4) * epsilon * (r - sigma)^(beta - 1.0) * sigma_arg^(-1.5))
+            du_geom_x = (2.0 * dots_add * rx / r2 / chi_add - dots_add * dots_add * chi * u2x / (chi_add^2)/r2 + 2.0 * dots_sub * rx / r2 / chi_sub + dots_sub * dots_sub * chi * u2x / (chi_sub^2)/r2 )
+            du_geom_y = (2.0 * dots_add * ry / r2 / chi_add - dots_add * dots_add * chi * u2y / (chi_add^2)/r2 + 2.0 * dots_sub * ry / r2 / chi_sub + dots_sub * dots_sub * chi * u2y / (chi_sub^2)/r2 )
+
+            dUdux = common_du * du_geom_x
+            dUduy = common_du * du_geom_y
+
+            p_i.f+= SVector{3, Float64}(fx, fy, 0.)
+
+            p_i.T+= SVector{3, Float64}(0., 0.,  -u1x * dUduy + u1y * dUdux)
+
+            stress_prefactor = 1/ (2 * pi* p_i.R^2)
+
+            sxx = stress_prefactor * dx[1] * fx
+
+            sxy = stress_prefactor * dx[1] * fy
+
+            syx = stress_prefactor * dx[2] * fx
+
+            syy = stress_prefactor * dx[2] * fy
+
+            p_i.stress += SMatrix{2, 2, Float64}(sxx, syx, sxy, syy)
+
+        end
+
+
+    end
+    return p_i
+
+end
+
+
+
+#Please refer to https://github.com/capomav/2D_deformable_ellipses for the original Python implementation for ellipses
+
+
+@kwdef struct morse_ellipse{T1, T2, T3} <: PairForce
+    ontypes::Union{Int64,Vector{Int64}}
+    aarray::T1
+    Darray::T2
+    epsilonarray::T3
+end
+
+#The current implementation according to the original definition does not take into account interaction between ellipses with different sigma_0 !
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::morse_ellipse)
+
+
+    if p_i.type in force.ontypes && p_j.type in force.ontypes
+
+        sigma_e = p_i.semi_major + p_j.semi_major
+
+        sigma_s = p_i.semi_minor + p_j.semi_minor
+
+        sigma_0 = p_i.sigma_0
+
+        ratio2 = (sigma_e/sigma_s)^2
+
+        #note that dx is oppositive sign to notes, so we define a help variable
+        rvec = - dx
+
+        r = dxn
+
+
+        rdotu1 = dot(p_i.p, rvec)
+
+        rdotu2 = dot(p_j.p, rvec)
+
+        u1dotu2 = dot(p_i.p , p_j.p) 
+
+        chi = (  ratio2 - 1  ) / ( ratio2 + 1 )
+
+        dots_add = rdotu1 + rdotu2
+        dots_sub = rdotu1 - rdotu2
+
+        chi_sub = 1 - chi * u1dotu2
+
+        chi_add = 1 + chi * u1dotu2
+
+        common_shape = dots_add^2/chi_add + dots_sub^2/chi_sub
+
+        sigma_arg = 1 - 1/2 * chi/dxn^2 * common_shape
+
+        sigma = sigma_0 * sigma_arg^(-1/2) * ( (1 - chi)/ (1+ chi) )^(1/4)
+
+
+        if dxn < 2*sigma
+
+            epsilon = force.epsilonarray[get_param_ind(force.ontypes, p_i.type),get_param_ind(force.ontypes, p_j.type)]
+
+            a = force.aarray[get_param_ind(force.ontypes, p_i.type),get_param_ind(force.ontypes, p_j.type)]
+
+            D =  force.Darray[get_param_ind(force.ontypes, p_i.type), get_param_ind(force.ontypes, p_j.type)]
+
+            exp_term = exp(-a * (r - sigma))
+
+            common_force = - 2* a * D * epsilon * exp_term * (1 - exp_term)
+            rx = rvec[1]
+            ry = rvec[2]
+            r = dxn
+            u1x = p_i.p[1]
+            u1y = p_i.p[2]
+
+            u2x = p_j.p[1]
+            u2y = p_j.p[2]
+
+            r2 = dxn^2
+            
+            geom_x = (rx / dxn - (chi * sigma^3)/ (2 * sigma_0^2 * ((1+chi)/(1-chi))^(-1/2) ) * 
+            (-rx/(r2^2)*common_shape+1/r2 * (dots_add/chi_add * (u1x + u2x) +dots_sub/chi_sub * (u1x - u2x)) ) )
+
+            geom_y = (ry / dxn - (chi * sigma^3) / (2* sigma_0^2 * ((1+chi) / (1-chi))^(-1.2) ) * (-ry / (r2^2) * common_shape + 1.0 / r2 * (dots_add / chi_add * (u1y + u2y) + dots_sub / chi_sub * (u1y - u2y)) ))
+
+            fx = common_force * geom_x
+            fy = common_force * geom_y
+
+            common_du =  - ( 0.5 * a * D * epsilon * chi * sigma_0 * ((1-chi) / (1+chi))^(1/4) * exp_term * (1.0 - exp_term) * sigma_arg^(-1.5) )
+            du_geom_x = (2.0 * dots_add * rx / r2 / chi_add - dots_add * dots_add * chi * u2x / (chi_add^2)/r2 + 2.0 * dots_sub * rx / r2 / chi_sub + dots_sub * dots_sub * chi * u2x / (chi_sub^2)/r2 )
+            du_geom_y = (2.0 * dots_add * ry / r2 / chi_add - dots_add * dots_add * chi * u2y / (chi_add^2)/r2 + 2.0 * dots_sub * ry / r2 / chi_sub + dots_sub * dots_sub * chi * u2y / (chi_sub^2)/r2 )
+
+            dUdux = common_du * du_geom_x
+            dUduy = common_du * du_geom_y
+
+            p_i.f+= SVector{3, Float64}(fx, fy, 0.)
+
+            p_i.T+= SVector{3, Float64}(0., 0.,  -u1x * dUduy + u1y * dUdux)
+
+            stress_prefactor = 1/ (2 * pi* p_i.R^2)
+
+            sxx = stress_prefactor * dx[1] * fx
+
+            sxy = stress_prefactor * dx[1] * fy
+
+            syx = stress_prefactor * dx[2] * fx
+
+            syy = stress_prefactor * dx[2] * fy
+
+            p_i.stress += SMatrix{2, 2, Float64}(sxx, syx, sxy, syy)
+
+        end
+
+
+    end
+    return p_i
+
+end

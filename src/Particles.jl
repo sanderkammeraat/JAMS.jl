@@ -131,7 +131,7 @@ end
 
 #Thanks to Nina Cankilic, Chinmay Pabshettiwar and Silke Henkes
 #[Reference to MSc thesis to be inserted]
-@kwdef struct GBEllipses<:Particle
+@kwdef struct GBEllipse<:Particle
 
 
     id::Int64
@@ -154,26 +154,27 @@ end
     q::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #angular velocity (so for particles in xy this is in z)
     T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
 
-    stress::MMatrix{2,2,Float64}
+    stress::SMatrix{2,2,Float64,4} = @SMatrix [0.0 0.0 ; 0.0 0.0]
 
-    Lambda::MMatrix{2,2,Float64}
-    Lambda0::MMatrix{2,2,Float64}
+    Lambda::SMatrix{2,2,Float64,4}
+    Lambda0::SMatrix{2,2,Float64,4}
 
     semi_major::Float64
 
     semi_minor::Float64
 
+    semi_major0::Float64
+
+    semi_minor0::Float64
+
     mu_alpha::Float64
     sigma_0::Float64 = 2.0
 
-    aspect_ratio::Float64
+    aspect_ratio0::Float64
 
     K::Float64
     mu::Float64
     tau::Float64
-    
-    
-
 
 end
 
