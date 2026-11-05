@@ -26,7 +26,7 @@ function relax()
     semi_major = lmda_major_0
 
     semi_minor = lmda_minor_0
-    K =1. 
+    K =1 
     mu = 0.5
     tau = 10.
     mu_alpha=0.01
@@ -60,8 +60,7 @@ function simulation(rx)
     a = 2.5
     D = 0.2
     epsilon = 1.
-    forces = (Forces.self_propulsion(ontypes = 1,v0 = 0.1), Forces.planar_rotational_noise(ontypes=1,Dr=.01),Forces.morse_ellipse(1, a, D, epsilon))    #For nondeformable ellipses, use this:
-    
+    forces = (Forces.self_propulsion(ontypes = 1,v0 = 0.1), Forces.planar_rotational_noise(ontypes=1,Dr=.01),Forces.morse_ellipse(1, a, D, epsilon)) 
     #For nondeformable ellipses, use this:
     #dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
     #For deformable ellipses use this

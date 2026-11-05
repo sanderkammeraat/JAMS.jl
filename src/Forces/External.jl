@@ -129,7 +129,7 @@ does nothing in the first timestep if the particles start with `v = 0`.
 
 Requires particle fields `type`, `p`, `v` and `T`.
 """
-struct self_align_with_v <: ExternalForce
+@kwdef struct self_align_with_v <: ExternalForce
     ontypes::Union{Int64,Vector{Int64}}
     J::Float64
     unit::Bool
@@ -151,7 +151,7 @@ function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::se
 end
 
 
-struct nematic_self_align_with_v <: ExternalForce
+@kwdef struct nematic_self_align_with_v <: ExternalForce
     ontypes::Union{Int64,Vector{Int64}}
     J::Float64
     unit::Bool

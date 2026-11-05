@@ -11,7 +11,7 @@ Overdamped (Euler–Maruyama) update of the position:
 
 Requires particle fields `type`, `zeta`, `x`, `xuw`, `v` and `f`.
 """
-struct overdamped_xvf<:LocalDOFevolver
+@kwdef struct overdamped_xvf<:LocalDOFevolver
     ontypes::Union{Int64,Vector{Int64}}
 end
 
@@ -45,7 +45,7 @@ For particles that move in the xy-plane, use [`overdamped_pqT_xyc`](@ref) instea
 
 Requires particle fields `type`, `zeta_R`, `p`, `q` and `T`.
 """
-struct overdamped_pqT<:LocalDOFevolver
+@kwdef struct overdamped_pqT<:LocalDOFevolver
     ontypes::Union{Int64,Vector{Int64}}
 end
 
@@ -77,7 +77,7 @@ xy-plane with unit length. Then `q = T / zeta_R` and `T` is reset to zero.
 
 Requires particle fields `type`, `zeta_R`, `p`, `q` and `T`.
 """
-struct overdamped_pqT_xyc<:LocalDOFevolver
+@kwdef struct overdamped_pqT_xyc<:LocalDOFevolver
     ontypes::Union{Int64,Vector{Int64}}
 end
 function evolve_locally!(p_i, t, dt, dofevolver::overdamped_pqT_xyc)
@@ -102,7 +102,7 @@ end
 
 
 
-struct overdamped_deform<:LocalDOFevolver
+@kwdef struct overdamped_deform<:LocalDOFevolver
     ontypes::Union{Int64,Vector{Int64}}
     incompressible::Bool
 end

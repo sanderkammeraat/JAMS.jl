@@ -17,7 +17,7 @@ function simulation()
 
     L =  ( 4/3 * pi *sum(Rs.^3) / ϕ)^(1/3)
 
-    initial_state = ParticleState([ Particles.Polar(id=i,type=1,R=Rs[i], x=[rand(Uniform(-L/2, L/2)) , rand(Uniform(-L/2,L/2)),rand(Uniform(-L/2, L/2))],p=normalize([rand(Normal(0, 1)),rand(Normal(0, 1)),0])) for i=1:N ])
+    initial_state = ParticleState([ Particles.Polar(id=i,type=1,R=Rs[i],  x=rand(Uniform(-L/2, L/2),3) , p=normalize(rand(Normal(0, 1),3))) for i=1:N ])
 
 
     display(L)

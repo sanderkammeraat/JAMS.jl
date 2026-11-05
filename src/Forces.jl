@@ -33,7 +33,7 @@ include("Forces/External.jl")
 
 
 #Helper function for flexible particle interactions encoding
-function get_param_ind(force_types, particle_type)
+@inline function get_param_ind(force_types, particle_type)
     return findfirst(isequal(particle_type),force_types)
 end
 

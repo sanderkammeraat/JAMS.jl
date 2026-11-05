@@ -31,6 +31,11 @@ that updates the fields of `p_i`, resets the forces and torques it used, and ret
 abstract type LocalDOFevolver <: DOFevolver end
 include("DOFevolvers/Local.jl")
 
+#Helper function for flexible particle interactions encoding ( a similar function exists for pair forces)
+@inline function get_param_ind(dofevolver_types, particle_type)
+    return findfirst(isequal(particle_type),dofevolver_types)
+end
+
 """
     GlobalDOFevolver <: DOFevolver
 

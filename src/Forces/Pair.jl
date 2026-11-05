@@ -109,7 +109,7 @@ Requires particle fields `type`, `pol_id`, `id_in_pol`, `R` and `f`, e.g.
 [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer). Set `rcut_pair_global`
 larger than the longest bond.
 """
-struct polymer_harmonic_stretch{T1,T2}<:PairForce
+@kwdef struct polymer_harmonic_stretch{T1,T2}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     internal_repulsion::Bool
     karray::T1
@@ -169,7 +169,7 @@ Requires particle fields `type`, `pol_id`, `id_in_pol`, `pol_N` and `f`, e.g.
 monomers. Pair forces are only evaluated within `rcut_pair_global`, so set it larger than
 the distance between second neighbours along a polymer (about two bond lengths).
 """
-struct polymer_harmonic_bend{T1}<:PairForce
+@kwdef struct polymer_harmonic_bend{T1}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
 end
@@ -290,7 +290,7 @@ Requires particle fields `type`, `pol_id`, `R`, `p` and `f`, e.g.
 [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer). Set `rcut_pair_global` to at
 least `rfact` times the largest `R_i + R_j`.
 """
-struct polymer_pair_polar_nematic<:PairForce
+@kwdef struct polymer_pair_polar_nematic<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     bundles::Bool
     rfact::Float64
@@ -355,7 +355,7 @@ same polymer), which may overlap freely. Use it together with
 Requires particle fields `type`, `pol_id`, `id_in_pol`, `R` and `f`, e.g.
 [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer).
 """
-struct polymer_repulsive_soft_disk{T1}<:PairForce
+@kwdef struct polymer_repulsive_soft_disk{T1}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     karray::T1
 end
@@ -387,7 +387,7 @@ interact through this force.
 Requires particle fields `type`, `pol_id`, `R`, `p`, `f` (and `T` if `torque` is `true`),
 e.g. [`Particles.PolarPolymer`](@ref JAMS.Particles.PolarPolymer).
 """
-struct polymer_pairAN{T1,T2, T3}<:PairForce
+@kwdef struct polymer_pairAN{T1,T2, T3}<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     torque::Bool
     traceless::Bool
@@ -494,7 +494,7 @@ the xy-plane.
 Requires particle fields `type`, `R`, `p`, `f` (and `T` if `torque` is `true`). Set
 `rcut_pair_global` to at least `rfact` times the largest `R_i + R_j`.
 """
-struct pairAN{T1,T2, T3}<: PairForce
+@kwdef struct pairAN{T1,T2, T3}<: PairForce
     ontypes::Union{Int64,Vector{Int64}}
     torque::Bool
     traceless::Bool
@@ -586,7 +586,7 @@ about z, which aligns `p_i` with either `p_j` or `-p_j`, whichever is closer.
 
 Requires particle fields `type`, `p` and `T`.
 """
-struct pair_nematic_alignment<: PairForce
+@kwdef struct pair_nematic_alignment<: PairForce
     ontypes::Union{Int64,Vector{Int64}}
     rcut::Float64
     J::Float64
@@ -623,7 +623,7 @@ Polar alignment torque between particles closer than `rcut`:
 
 Requires particle fields `type`, `p` and `T`.
 """
-struct pair_polar_alignment<:PairForce
+@kwdef struct pair_polar_alignment<:PairForce
     ontypes::Union{Int64,Vector{Int64}}
     rcut::Float64
     J::Float64
