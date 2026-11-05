@@ -232,12 +232,15 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
     row_inds = sizehint!(Int64[],  21*N)
     col_inds = sizehint!(Int64[],  21*N)
     vals = sizehint!(Float64[],  21*N) 
+    counter = 0
 
     for i in eachindex(current_particle_state)
 
         p_i = current_particle_state[i]
 
         if p_i.type in dofevolver.ontypes
+
+            counter+=1
 
             zeta_i = p_i.zeta 
             
@@ -303,23 +306,24 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
     
 
     # We have now prepared the values for M, let's construct it
+    if counter>0
+        M = sparse(row_inds, col_inds, vals, Mdim, Mdim)
 
-    M = sparse(row_inds, col_inds, vals, Mdim, Mdim)
+        sol = M \ vec(stack(current_particle_state.f))
 
-    sol = M \ vec(stack(current_particle_state.f))
+        Threads.@threads for i in eachindex(current_particle_state)
+            p_i =  PRow(current_particle_state, i)
+            if p_i.type in dofevolver.ontypes
+                
 
-    Threads.@threads for i in eachindex(current_particle_state)
-        p_i =  PRow(current_particle_state, i)
-        if p_i.type in dofevolver.ontypes
-            
-
-            p_i.v = @views sol[ 3(i-1)+1:3i]
-            
-            p_i.x += p_i.v * dt
-            p_i.xuw += p_i.v * dt
-            
-            #reinitialize
-            p_i.f *=0.
+                p_i.v = @views sol[ 3(i-1)+1:3i]
+                
+                p_i.x += p_i.v * dt
+                p_i.xuw += p_i.v * dt
+                
+                #reinitialize
+                p_i.f *=0.
+            end
         end
     end
 
