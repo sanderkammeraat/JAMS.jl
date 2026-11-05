@@ -61,6 +61,22 @@ function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::p
     return p_i
 end
 
+
+@kwdef struct rotational_noise_3d <: ExternalForce
+    ontypes::Union{Int64,Vector{Int64}}
+    Dr::Float64
+end
+
+function contribute_external_force!(p_i, t, dt, rngs_particles, system, force::rotational_noise_3d)
+    if p_i.type in force.ontypes
+
+        η =sqrt( 2*force.Dr ) * rand(rngs_particles[p_i.id],Normal(0, 1), 3)
+
+        p_i.T +=  η .* sqrt(dt)/dt 
+    end
+    return p_i
+end
+
 """
     translational_noise(ontypes, Dtarray)
     translational_noise(; ontypes, Dtarray)
@@ -155,3 +171,4 @@ function contribute_external_force!(p_i, t, dt,rngs_particles, system, force::ne
     end 
     return p_i
 end
+
