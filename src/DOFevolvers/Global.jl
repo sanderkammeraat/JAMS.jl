@@ -112,6 +112,15 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
         p_i = current_particle_state[i]
 
+        #Fill self part, need to always do this for unaffected particles too
+        for k in 1:3
+            push!(row_inds, 3*(i - 1) + k )
+
+            push!(col_inds, 3*(i - 1) + k )
+
+            push!(vals, 1.)
+        end
+
         if p_i.type in dofevolver.ontypes
 
             counter+=1
@@ -165,14 +174,6 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
                     end
                 end
-            end
-            #Fill neighbour-self part
-            for k in 1:3
-                push!(row_inds, 3*(i - 1) + k )
-
-                push!(col_inds, 3*(i - 1) + k )
-
-                push!(vals, 1.)
             end
         end
     end
@@ -238,6 +239,15 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
         p_i = current_particle_state[i]
 
+        #Fill self part, need to always do this for uncoupled particles too
+        for k in 1:3
+            push!(row_inds, 3*(i - 1) + k )
+
+            push!(col_inds, 3*(i - 1) + k )
+
+            push!(vals, 1.)
+        end
+
         if p_i.type in dofevolver.ontypes
 
             counter+=1
@@ -293,14 +303,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
                     end
                 end
             end
-            #Fill neighbour-self part
-            for k in 1:3
-                push!(row_inds, 3*(i - 1) + k )
 
-                push!(col_inds, 3*(i - 1) + k )
-
-                push!(vals, 1.)
-            end
         end
     end
     
