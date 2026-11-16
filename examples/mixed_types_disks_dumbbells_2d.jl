@@ -16,7 +16,7 @@ function simulation_2d()
                 DOFevolvers.polymer_p_set([1,2]), DOFevolvers.overdamped_pqT_xyc(3))
 
     N=20
-    Npas = 5000
+    Npas = 2000
     rpas = 0.5
     ϕ = 0.8
 
@@ -49,15 +49,13 @@ function simulation_2d()
 
     system = System(sizes=sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=true,rcut_pair_global=2.5);
     
-    sim = Euler_integrator(system,0.01, 10,Tplot=nothing,fps=60,plot_functions=(LPlot.disks_type!,LPlot.polymers!,LPlot.directors!, LPlot.velocity_vectors!),plotdim=2); 
+    sim = Euler_integrator(system,0.01, 1e3,Tplot=10,fps=60,plot_functions=(LPlot.disks_type!,LPlot.polymers!,LPlot.directors!, LPlot.velocity_vectors!),plotdim=2); 
     return sim;
 
 end
 
 
 sim = simulation_2d()
-
-@profview simulation_2d()
 
 
 
