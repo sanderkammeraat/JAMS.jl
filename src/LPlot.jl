@@ -17,6 +17,8 @@ using LinearAlgebra
 using Distributions
 using Random
 using SparseArrays
+import ..Particles
+
 
 if pkgversion(Makie) >= v"0.23-"
     gen_arrows_2d!(args...; kwargs...) = arrows2d!(args...; kwargs...)
@@ -450,14 +452,16 @@ Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) 
 """
 function polymers!(f,ax, cpsO, cfsO)
 
+    polymers = @lift filter(p -> p isa Particles.PolarPolymer, $cpsO)
+    isempty(polymers[]) && return ax
 
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
+    x = @lift([p_i.x[1] for p_i in $polymers])
+    y = @lift([p_i.x[2] for p_i in $polymers])
 
-    c = @lift([ p_i.pol_id[1] for p_i in $cpsO])
+    c = @lift([ p_i.pol_id[1] for p_i in $polymers])
 
     
-    s = @lift([2*p_i.R[1]  for p_i in $cpsO])
+    s = @lift([2*p_i.R[1]  for p_i in $polymers])
     scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1, colormap=:rainbow1)
 
     return ax
@@ -473,15 +477,18 @@ Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) 
 """
 function polymers_3d!(f,ax, cpsO, cfsO)
 
+    polymers = @lift filter(p -> p isa Particles.PolarPolymer, $cpsO)
+    isempty(polymers[]) && return ax
 
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
-    z = @lift([p_i.x[3] for p_i in $cpsO])
 
-    c = @lift([ p_i.pol_id[1] for p_i in $cpsO])
+    x = @lift([p_i.x[1] for p_i in $polymers])
+    y = @lift([p_i.x[2] for p_i in $polymers])
+    z = @lift([p_i.x[3] for p_i in $polymers])
+
+    c = @lift([ p_i.pol_id[1] for p_i in $polymers])
 
     
-    s = @lift([p_i.R[1]  for p_i in $cpsO])
+    s = @lift([p_i.R[1]  for p_i in $polymers])
     meshscatter!(ax,x,y,z, color=c, markersize =s,alpha=0.7, colormap=:rainbow1)
 
     return ax
@@ -519,12 +526,14 @@ Particles drawn as ellipses whose axes are the eigenvalues of the 2×2 shape ten
 Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
 """
 function ellipses!(f, ax, cpsO, cfsO)
-    pos    = @lift [Point2f(p_i.x[1], p_i.x[2]) for p_i in $cpsO]
-    sizes  = @lift [Vec2f(2p_i.semi_major, 2p_i.semi_minor) for p_i in $cpsO]
-    angles = @lift [Float32(atan(p_i.p[2], p_i.p[1])) for p_i in $cpsO]
-    colors = @lift [Float32(p_i.semi_major / p_i.semi_minor) for p_i in $cpsO]
+    ellipses = @lift filter(p -> p isa Particles.GBEllipse, $cpsO)
+    isempty(ellipses[]) && return ax
+    pos    = @lift [Point2f(p_i.x[1], p_i.x[2]) for p_i in $ellipses]
+    sizes  = @lift [Vec2f(2p_i.semi_major, 2p_i.semi_minor) for p_i in $ellipses]
+    angles = @lift [Float32(atan(p_i.p[2], p_i.p[1])) for p_i in $ellipses]
+    colors = @lift [Float32(p_i.semi_major / p_i.semi_minor) for p_i in $ellipses]
 
-    aspect_ratio0 = cpsO[][1].aspect_ratio0
+    aspect_ratio0 = ellipses[][1].aspect_ratio0
     scatter!(ax, pos; marker=Circle, markerspace=:data,
              markersize=sizes, rotation=angles,
              color=colors, colorrange=(aspect_ratio0 - 0.5, aspect_ratio0 + 0.5), colormap=:rainbow,

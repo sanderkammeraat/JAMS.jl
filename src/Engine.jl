@@ -375,6 +375,11 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
             end
         end
     end
+    let T = eltype(system.initial_particle_state)
+        if !isconcretetype(T) && !(T isa Union)
+            error("JAMS: initial particle state must be wrapped in ParticleState(...), so it gets concretely typed. Or type it yourself.")
+        end
+    end
 
     current_particle_state = deepcopy(system.initial_particle_state)
     current_field_state = deepcopy(system.initial_field_state)
@@ -801,17 +806,4 @@ function contribute_pair_forces!(i,p_i, current_particle_state, pair_forces, t, 
     return p_i
 end
 
-
-
-
-struct PRow{S}
-    sa::S
-    i::Int
-end
-@inline Base.getproperty(r::PRow, s::Symbol) =
-    @inbounds getproperty(getfield(r, :sa), s)[getfield(r, :i)]
-@inline function Base.setproperty!(r::PRow, s::Symbol, v)
-    @inbounds getproperty(getfield(r, :sa), s)[getfield(r, :i)] = v
-    return v
-end
 

@@ -23,6 +23,7 @@ function setup_system_plotting end
 function GLMakie_window_closeall end
 
 include("Particles.jl")
+include("ParticleState.jl")
 include("Forces.jl")
 include("Fields.jl")
 include("FieldUpdaters.jl")
@@ -43,22 +44,7 @@ include("DOFevolvers.jl")
 @reexport using .Initial
 @reexport using .Save
 
-#Convenience alias for StructArray for new users
-export ParticleState
-"""
-    ParticleState(particles)
 
-Alias for `StructArray` from StructArrays.jl. Use it to turn a vector of particles into
-the state that a [`System`](@ref) needs:
-
-```julia
-initial_state = ParticleState([Particles.Polar(id=i, type=1, x=..., p=...) for i in 1:N])
-```
-
-Each particle field becomes a column, so `initial_state.x` is the vector of all positions,
-and `initial_state[i]` returns particle `i`.
-"""
-const ParticleState = StructArray
 
 
 include("Engine.jl")

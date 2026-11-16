@@ -116,7 +116,7 @@ end
 
     #Find new cell for each particle
     Threads.@threads for id in eachindex(current_particle_state)
-        @inbounds cells.particle_id_to_cell_id[id] = find_cell_index(current_particle_state.x[id], cells.nbins, cells.lbins, cells.sizes)
+        @inbounds cells.particle_id_to_cell_id[id] = find_cell_index(PRow(current_particle_state, id).x, cells.nbins, cells.lbins, cells.sizes)
     end
 
     #Reset counts
@@ -202,12 +202,13 @@ function update_neighbour_list!(neighbours, cells, current_particle_state, syste
             candidate_cell_id = cells.neighbors[k, cell_id_of_p_i]
             candidate_cell_id == 0 && break #if zero: there will be no neigbouring cells anymore so we can stop completely 
 
+            x_i = PRow(current_particle_state, i).x
             for ind in cells.group_edges[candidate_cell_id]:(cells.group_edges[candidate_cell_id+1]-1)
 
                 j = cells.grouped_particle_ids[ind]
 
                 j == i && continue
-                dx = minimal_image_difference(current_particle_state.x[i], current_particle_state.x[j], system.sizes, system.Periodic)
+                dx = minimal_image_difference(x_i, PRow(current_particle_state, j).x, system.sizes, system.Periodic)
                 dxn2 = sum(abs2, dx)
                 if  dxn2<= neighbours.rverlet2
                     Nn += 1
@@ -235,6 +236,8 @@ function update_neighbour_list!(neighbours, cells, current_particle_state, syste
         #start fo group of neighbours of particle i
         start_ind=neighbours.group_edges[i]
         @inbounds for k in 1:27
+
+            x_i = PRow(current_particle_state, i).x
             candidate_cell_id = cells.neighbors[k, cell_id_of_p_i]
             candidate_cell_id == 0 && break #if zero: there will be no neigbouring cells anymore so we can stop completely 
 
@@ -243,7 +246,7 @@ function update_neighbour_list!(neighbours, cells, current_particle_state, syste
                 j = cells.grouped_particle_ids[ind]
 
                 j == i && continue
-                dx = minimal_image_difference(current_particle_state.x[i], current_particle_state.x[j], system.sizes, system.Periodic)
+                dx = minimal_image_difference(x_i, PRow(current_particle_state, j).x, system.sizes, system.Periodic)
                 dxn2 = sum(abs2, dx)
                 if  dxn2<= neighbours.rverlet2
                     neighbours.grouped_neighbour_ids[start_ind] = j
@@ -252,7 +255,9 @@ function update_neighbour_list!(neighbours, cells, current_particle_state, syste
             end
         end
     end
-    copyto!(neighbours.last_positions, current_particle_state.x)
+    for i in eachindex(current_particle_state)
+        neighbours.last_positions[i] = PRow(current_particle_state, i).x
+    end
     return neighbours
 
 end
@@ -261,8 +266,8 @@ function check_for_rebuild(neighbours, current_particle_state, system)
     max_displacement2 = (neighbours.skin / 2)^2
     #Loop over all position components
     rebuild = false
-    @inbounds for i in eachindex(current_particle_state.x)
-        dx = minimal_image_difference(neighbours.last_positions[i], current_particle_state.x[i], system.sizes, system.Periodic)
+    @inbounds for i in eachindex(current_particle_state)
+        dx = minimal_image_difference(neighbours.last_positions[i], PRow(current_particle_state, i).x, system.sizes, system.Periodic)
         dxn2 = sum(abs2, dx)
         if dxn2>max_displacement2
             rebuild = true

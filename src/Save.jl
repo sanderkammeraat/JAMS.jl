@@ -24,11 +24,11 @@ function polar_particle!(current_frame_group, current_particle_state, current_fi
 
     current_frame_group["t"] = t
 
-    current_frame_group["id"] = current_particle_state.id
+    current_frame_group["id"] = [p_i.id for p_i in current_particle_state]
 
-    current_frame_group["type"] = current_particle_state.type
+    current_frame_group["type"] = [p_i.type for p_i in current_particle_state]
 
-    current_frame_group["R"] = current_particle_state.R
+    current_frame_group["R"] = [p_i.R for p_i in current_particle_state]
 
     current_frame_group["x"] = [p_i.x[1] for p_i in current_particle_state]
     current_frame_group["y"] = [p_i.x[2] for p_i in current_particle_state]
