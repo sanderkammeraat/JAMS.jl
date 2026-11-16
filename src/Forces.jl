@@ -67,6 +67,6 @@ include("Forces/Pair.jl")
 Supertype of forces between particles and fields.
 """
 abstract type FieldForce <:Force end
-#include("Forces/Field.jl")
+include("Forces/Field.jl")
 
 end

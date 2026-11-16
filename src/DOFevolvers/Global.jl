@@ -79,6 +79,7 @@ end
 
 @kwdef struct overdamped_pairdis{T1, T2}<: GlobalDOFevolver
     ontypes::Union{Int64,Vector{Int64}}
+    withtypes::Union{Int64,Vector{Int64}} = ontypes
     etaarray::T1
     rfactarray::T2
     linearcutoff::Bool
@@ -121,7 +122,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
             push!(vals, 1.)
         end
 
-        if p_i.type in dofevolver.ontypes
+        if p_i.type in dofevolver.withtypes
 
             counter+=1
             zeta_i = p_i.zeta 
@@ -132,7 +133,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
                 p_j =  current_particle_state[j]
 
-                if p_j.type in dofevolver.ontypes
+                if p_j.type in dofevolver.withtypes
 
                     dx = minimal_image_difference(p_i.x, p_j.x, system.sizes, system.Periodic)
 
@@ -140,11 +141,11 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
                     d2a = p_i.R+p_j.R
 
-                    rfact = dofevolver.rfactarray[get_param_ind(dofevolver.ontypes,p_i.type),get_param_ind(dofevolver.ontypes,p_j.type)]
+                    rfact = dofevolver.rfactarray[get_param_ind(dofevolver.withtypes,p_i.type),get_param_ind(dofevolver.withtypes,p_j.type)]
                     
                     if dxn2<= rfact* d2a
 
-                        eta = dofevolver.etaarray[get_param_ind(dofevolver.ontypes,p_i.type),get_param_ind(dofevolver.ontypes,p_j.type)]
+                        eta = dofevolver.etaarray[get_param_ind(dofevolver.withtypes,p_i.type),get_param_ind(dofevolver.withtypes,p_j.type)]
 
                         #dxn = sqrt(dxn2)
                         #Change below for different weights, e.g. based on distance

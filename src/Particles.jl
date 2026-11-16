@@ -83,6 +83,34 @@ p = Particles.Polar(id=1, type=1, R=1.0, x=[0.0, 0.0, 0.0], p=[1.0, 0.0, 0.0])
     T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
 end
 
+
+@kwdef struct PolarKernel <: Particle
+
+    id::Int64
+    type::Int64
+    
+    m::Float64   = 1.0
+    zeta::Float64 = 1.0
+    
+    zeta_R::Float64 = 1.0
+
+    R::Float64   = 1.0
+
+    x::SVector{3, Float64}
+    xuw::SVector{3, Float64} = @SVector [0.0, 0.0, 0.0]
+
+    v::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+    f::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+
+    p::SVector{3, Float64}                                  #polarity vector
+    q::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #angular velocity (so for particles in xy this is in z)
+    T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
+
+end
+
+
+
+
 """
     PolarPolymer(; id, type, pol_id, id_in_pol, pol_N, x, p, kwargs...)
 

@@ -8,10 +8,10 @@ function simulation_3d()
     compressed = 0.6
     forces = (Forces.self_propulsion(1,0.1),Forces.translational_noise(1,1e-3*[1,1,1]),Forces.polymer_repulsive_soft_disk([1,2],ones(2,2)),Forces.polymer_harmonic_stretch([1,2],false,ones(2,2), compressed*ones(2,2)))
 
-    dofevolvers = (DOFevolvers.overdamped_xvf([1,2]),
-        #DOFevolvers.overdamped_polymer_pairdis([1,2],2*ones(2,2), 1.2*ones(2,2) ,true),
+    dofevolvers = (#DOFevolvers.overdamped_xvf([1,2]),
+        DOFevolvers.overdamped_polymer_pairdis([1,2],2*ones(2,2), 1.2*ones(2,2) ,true),
         DOFevolvers.polymer_p_set([1,2]))
-    N=5
+    N=10
     ϕ = 0.01
     poly=15e-2
     Rs =rand(Uniform(1-poly, 1+poly),N)

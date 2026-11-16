@@ -10,7 +10,7 @@ function relaxation()
     aspect = 1
     Lx = 50. *aspect
     Ly = Lx /aspect^2
-    phi = 0.9
+    phi = 0.94
     poly=15e-2
     l = 2.0
     xs, ys = Initial.box(l, Lx, Ly)
@@ -32,7 +32,7 @@ function relaxation()
 
     system = System(sizes=sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=true,rcut_pair_global=2.5*(1+poly));
 
-    sim = Euler_integrator(system,0.05, 1e3,Tplot=100,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2); 
+    sim = Euler_integrator(system,0.05, 1e3,Tplot=100,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2, Tsave =20, save_folder_path = joinpath(homedir(),"testdata_JARS"), save_tag = "rx", save_functions=(Save.polar_particle!,)); 
     return sim;
 
 end
@@ -40,7 +40,7 @@ rx=relaxation()
 
 
 function sa_step(rx)
-    forces = (Forces.self_align_with_v(1,1,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.0001),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
+    forces = (Forces.self_align_with_v(1,0.2,true),Forces.self_propulsion(1,0.01),Forces.planar_rotational_noise(ontypes=1,Dr=0.0001),Forces.repulsive_soft_disk([1,2],[1 2 ; 2 2]),)
 
     dofevolvers = (DOFevolvers.overdamped_xvf(1),DOFevolvers.overdamped_pqT_xyc(1))
 
@@ -52,7 +52,7 @@ function sa_step(rx)
 
     system = System(sizes=rx.system.sizes, initial_particle_state = initial_state,forces = forces, dofevolvers = dofevolvers, Periodic=false,rcut_pair_global=rx.system.rcut_pair_global);
 
-    sim = Euler_integrator(system,0.01, 1e4,Tplot=10,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2); 
+    sim = Euler_integrator(system,0.01, 1e3,Tplot=10,fps=60,plot_functions=(LPlot.disks_v_orientation!,LPlot.directors!),plotdim=2, Tsave =20, save_folder_path = joinpath(homedir(),"testdata_JARS"), save_tag = "sa", save_functions=(Save.polar_particle!,)); 
     return sim;
 
 end
