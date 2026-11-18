@@ -142,6 +142,8 @@ function save_raw_obj_data!(file_group, obj)
             obj_group[name] = string(val)
         elseif val isa StaticArray
             obj_group[name] = collect(val)
+        elseif name == "interpolation_function"
+            #Do nothing
         else
             obj_group[name] = val
         end

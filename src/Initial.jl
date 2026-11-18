@@ -246,9 +246,9 @@ function place_on_edge(Edge, density)
     dLx = Edge.Lx/(N-1)
     dLy = Edge.Ly/(N-1)
 
-    xs = [Edge.x1 + dLx*n for n=0:N]
+    xs = [Edge.x1 + dLx*n for n=0:N-1]
 
-    ys = [Edge.y1 + dLy*n for n=0:N]
+    ys = [Edge.y1 + dLy*n for n=0:N-1]
 
     return PopulatedEdge(xs, ys)
 
@@ -294,7 +294,7 @@ function construct_populated_polygon_from_edges(populated_edges)
 
 end
 
-#Unique coordinates of the vertices only, ordered counterclockwise
+#Unique coordinates of the vertices only, ordered clockwise
 function construct_populated_polygon(x_vertices, y_vertices, density)
 
     Nv = length(x_vertices)

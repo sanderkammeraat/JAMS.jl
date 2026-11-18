@@ -709,4 +709,19 @@ end
 
 
 
+function shape_orientation!(f,ax, cpsO, cfsO)
+    shapes = @lift filter(p -> p isa Particles.PolarShapeKernel, $cpsO)
+    isempty(shapes[]) && return ax
+
+    c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
+    s = @lift( [2*p_i.Rs[j] for p_i in $shapes for j in eachindex(p_i.xsrel)] )
+
+    pts = @lift([Point2f(p_i.x[1] + p_i.xsrel[j], p_i.x[2] + p_i.ysrel[j]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
+
+    scatter!(ax, pts, color=c, markersize=s, marker = Circle, markerspace=:data,alpha=1., strokecolor=:transparent, strokewidth=0,colormap=:phase,colorrange=(-pi,pi))
+    return ax
+end
+
+
+
 end

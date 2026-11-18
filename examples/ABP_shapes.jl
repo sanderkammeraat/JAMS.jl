@@ -51,6 +51,7 @@ function simulation()
     y_vs = [ 0, r, 2r, 0, -2r, -r,]
 
     triangle = Initial.construct_populated_polygon(x_vs, y_vs, 2)
+    
 
     square = Initial.construct_populated_polygon([0, 1, 1, 0]*2r, [1, 1, 0, 0]*2r , 2)
 
@@ -61,6 +62,7 @@ function simulation()
 
     xsrel0 = shape.xsrel0 
     rs = r .* ones(length(xsrel0)) 
+    display(length(xsrel0))
     #initial_state = ParticleState([ Particles.PolarKernel(id=i,type=1,R =R, x = [rand(Uniform(-L/2, L/2)) , rand(Uniform(-L/2,L/2)),0],p = normalize([rand(Normal(0, 1)),rand(Normal(0, 1)),0]), kernel_x = kernel_x, kernel_y = kernel_y) for i=1:N ] );
     initial_state = ParticleState([ Particles.PolarShapeKernel(id=i,type=1, R = R, x = [rand(Uniform(-L/2, L/2)) , rand(Uniform(-L/2,L/2)),0],p = normalize([rand(Normal(0, 1)),rand(Normal(0, 1)),0]), xsrel0=shape.xsrel0, ysrel0=shape.ysrel0, Rs=rs) for i=1:N ] );
 
@@ -68,7 +70,7 @@ function simulation()
 
 
     sim = Euler_integrator(system,0.01, 1e4,  Tplot=10, res = (1000, 1000),
-    plot_functions=( custom_shape_disks_orientation!,custom_directors!,), plotdim=2)#
+    plot_functions=( LPlot.shape_orientation!,custom_directors!,), plotdim=2)#
 
 end
 

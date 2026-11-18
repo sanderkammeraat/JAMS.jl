@@ -55,5 +55,64 @@ function polar_particle!(current_frame_group, current_particle_state, current_fi
 
 end
 
+function polar_shape_minimal_xy!(current_frame_group, current_particle_state, current_field_state, n, Tsave, t,framecounter)
+
+    current_frame_group["n"] = n
+
+    current_frame_group["t"] = t
+
+    current_frame_group["id"] = [p_i.id for p_i in current_particle_state]
+
+    current_frame_group["type"] = [p_i.type for p_i in current_particle_state]
+
+    current_frame_group["R"] = [p_i.R for p_i in current_particle_state]
+
+    current_frame_group["x"] = [p_i.x[1] for p_i in current_particle_state]
+    current_frame_group["y"] = [p_i.x[2] for p_i in current_particle_state]
+
+
+    current_frame_group["vx"] = [p_i.v[1] for p_i in current_particle_state]
+    current_frame_group["vy"] = [p_i.v[2] for p_i in current_particle_state]
+
+    current_frame_group["px"] = [p_i.p[1] for p_i in current_particle_state]
+    current_frame_group["py"] = [p_i.p[2] for p_i in current_particle_state]
+
+    current_frame_group["xsrel"] = [p_i.xsrel[j] for p_i in current_particle_state for j in eachindex(p_i.xsrel)]
+    current_frame_group["ysrel"] = [p_i.ysrel[j] for p_i in current_particle_state for j in eachindex(p_i.ysrel)]
+
+
+
+    return current_frame_group
+
+
+end
+
+
+
+function single_field_xy_10!(current_frame_group, current_particle_state, current_field_state, n, Tsave, t,framecounter)
+
+
+    if (n-1)%(10*Tsave)==0
+        current_frame_group["field_n"] = n
+
+        current_frame_group["field_t"] = t
+
+
+        current_frame_group["field_id"] = [field.id for field in current_field_state]
+
+        current_frame_group["field_type"] = [field.type for field in current_field_state]
+        current_frame_group["field_bin_centers_x"] = current_field_state[1].bin_centers[1]
+        current_frame_group["field_bin_centers_y"] = current_field_state[1].bin_centers[2]
+
+        current_frame_group["field_C"] = current_field_state[1].C
+
+
+    end
+
+    return current_frame_group
+
+end
+
+
 
 end
