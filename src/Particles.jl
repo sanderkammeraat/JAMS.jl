@@ -22,8 +22,7 @@ abstract type Particle end
 """
     RigidBody
 
-Abstract supertype for extended (rigid-body) particles. Periodic boundary conditions are
-only applied to their center position `x`.
+Abstract supertype for extended (rigid-body) particles.
 """
 abstract type RigidBody end
 
@@ -83,8 +82,8 @@ p = Particles.Polar(id=1, type=1, R=1.0, x=[0.0, 0.0, 0.0], p=[1.0, 0.0, 0.0])
     T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
 end
 
-
-@kwdef struct PolarKernel <: Particle
+#Parametrize on the kernel length
+@kwdef struct PolarKernel{Nk} <: Particle
 
     id::Int64
     type::Int64
@@ -106,7 +105,12 @@ end
     q::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #angular velocity (so for particles in xy this is in z)
     T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
 
+    kernel_x::SVector{Nk, Float64} = @SVector [0.0]
+    kernel_y::SVector{Nk, Float64}= @SVector [0.0]
+
 end
+#Allow default kernel to work
+PolarKernel(id, type, m, zeta, zeta_R, R, x, xuw, v, f, p, q, T, kernel_x, kernel_y) = PolarKernel{length(kernel_x)}(id, type, m, zeta, zeta_R, R, x, xuw, v, f, p, q, T, kernel_x, kernel_y)
 
 
 
@@ -207,8 +211,48 @@ end
 end
 
 
+#Parametrize on the kernel length and number of subparticles
+@kwdef struct PolarShapeKernel{Nk, Ns} <: RigidBody
 
+    id::Int64
+    type::Int64
     
+    m::Float64   = 1.0
+    zeta::Float64 = 1.0
+    
+    zeta_R::Float64 = 1.0
+
+    R::Float64   = 1.0
+
+    x::SVector{3, Float64} #This now takes the interpretation as the COM location
+    xuw::SVector{3, Float64} = @SVector [0.0, 0.0, 0.0]
+
+    v::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+    f::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]
+
+    p::SVector{3, Float64}                                  #polarity vector
+    q::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #angular velocity (so for particles in xy this is in z)
+    T::SVector{3, Float64}   = @SVector [0.0, 0.0, 0.0]     #torque  (so for particles in xy this is in z)
+
+    kernel_x::SVector{Nk, Float64} = @SVector [0.0]
+    kernel_y::SVector{Nk, Float64}= @SVector [0.0]
+
+    # Initial positions of subparticles relative to COM, so will stay fixed because it is rigid
+    xsrel0::SVector{Ns, Float64}
+    ysrel0::SVector{Ns, Float64}
+
+    #Updated relative positions of subparticles, so moves with p: absolute xs = xsrel + x
+    xsrel::SVector{Ns, Float64} = xsrel0 .* p[1] .- ysrel0 .* p[2]
+    ysrel::SVector{Ns, Float64} = xsrel0 .* p[2] .+ ysrel0 .* p[1]
+
+    # Radii of subparticles
+    Rs::SVector{Ns, Float64}
+
+end
+
+#Allow default kernel to work
+PolarShapeKernel(id, type, m, zeta, zeta_R, R, x, xuw, v, f, p, q, T, kernel_x, kernel_y, xsrel0, ysrel0, xsrel, ysrel, Rs) = PolarShapeKernel{length(kernel_x),length(xsrel0)}(id, type, m, zeta, zeta_R, R, x, xuw, v, f, p, q, T, kernel_x, kernel_y, xsrel0, ysrel0, xsrel, ysrel, Rs)
+
 
 #module end
 end

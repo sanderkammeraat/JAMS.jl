@@ -87,7 +87,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
     #There might be a way to reduce this to a N x N matrix, but for now we treat this fully expanded in components: the matrix equation has dimensions 3N x 3N.
 
     # Let's assume that in worst case, a particle interacts with 6 neighbours, then we have the following number of nonzero elements: 3N (from the diagonal) + N * 6 * 3 = 3N + 18N = 21N out of 9N^2 total elements
-    # Hence the non-sparsity of the matrix is 7 1/N. For 1000 particles this means a non-sparsity of only 0.7 %. Hence we should treat this as a sparse problem.
+    # Hence the non-sparsity of the matrix is 7/(3N). Even for just 100 particles, this means a non-sparsity of only 2.33... %. Hence we should treat this as a sparse problem.
 
     # As outlined here: https://sparsearrays.juliasparse.org/dev/#man-sparse-performance, we should first collect nonzero indices and their values and construct the matrix afterwards.
 
@@ -101,7 +101,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
     counter=0
     for i in eachindex(current_particle_state)
 
-        p_i = current_particle_state[i]
+        p_i =  PRow(current_particle_state, i)
 
         #Fill self part, need to always do this for unaffected particles too
         for k in 1:3
@@ -214,7 +214,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
     #There might be a way to reduce this to a N x N matrix, but for now we treat this fully expanded in components: the matrix equation has dimensions 3N x 3N.
 
     # Let's assume that in worst case, a particle interacts with 6 neighbours, then we have the following number of nonzero elements: 3N (from the diagonal) + N * 6 * 3 = 3N + 18N = 21N out of 9N^2 total elements
-    # Hence the non-sparsity of the matrix is 7 1/N. For 1000 particles this means a non-sparsity of only 0.7 %. Hence we should treat this as a sparse problem.
+    # Hence the non-sparsity of the matrix is 7/(3N). Even for just 100 particles, this means a non-sparsity of only 2.33... %. Hence we should treat this as a sparse problem.
 
     # As outlined here: https://sparsearrays.juliasparse.org/dev/#man-sparse-performance, we should first collect nonzero indices and their values and construct the matrix afterwards.
 
@@ -228,7 +228,7 @@ function evolve_globally!(current_particle_state, current_field_state, system, n
 
     for i in eachindex(current_particle_state)
 
-        p_i = current_particle_state[i]
+        p_i =  PRow(current_particle_state, i)
 
         #Fill self part, need to always do this for uncoupled particles too
         for k in 1:3

@@ -43,15 +43,11 @@ function points!(f,ax, cpsO, cfsO)
     y = @lift([p_i.x[2] for p_i in $cpsO])
 
     c = @lift([ p_i.id[1] for p_i in $cpsO])
-    if length(cpsO[][1].x)>2
-        
-        z = @lift([p_i.x[3] for p_i in $cpsO])
-        meshscatter!(ax,x,y,z, color=c)
 
-    else
-        scatter!(ax,x,y, color=c)
+    z = @lift([p_i.x[3] for p_i in $cpsO])
+    meshscatter!(ax,x,y,z, color=c)
 
-    end
+
     return ax
 end
 
@@ -112,20 +108,13 @@ function director_points!(f,ax, cpsO, cfsO)
     
 
     c = @lift([ p_i.id[1] for p_i in $cpsO])
-    if length(cpsO[][1].x)>2
 
+    z = @lift([p_i.x[3] for p_i in $cpsO])
+    xpx = @lift([p_i.p[1]+p_i.x[1] for p_i in $cpsO])
+    ypy = @lift([p_i.p[2]+p_i.x[2] for p_i in $cpsO])
 
-        
-        z = @lift([p_i.x[3] for p_i in $cpsO])
-        xpx = @lift([p_i.p[1]+p_i.x[1] for p_i in $cpsO])
-        ypy = @lift([p_i.p[2]+p_i.x[2] for p_i in $cpsO])
+    meshscatter!(ax,xpx,ypy,z, color=:red)
 
-        meshscatter!(ax,xpx,ypy,z, color=:red)
-
-    else
-        scatter!(ax,x,y, color=c)
-
-    end
     return ax
 end
 
@@ -160,36 +149,6 @@ function field_magnitude!(f,ax, cpsO, cfsO)
     return ax
 end
 
-"""
-    GPUfield_magnitude!(f, ax, cpsO, cfsO)
-
-Same as [`field_magnitude!`](@ref), but converts `C` to `Float64` first, for fields stored in single precision or on a GPU.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
-function GPUfield_magnitude!(f,ax, cpsO, cfsO)
-    
-    field_centers1 = @lift($(cfsO)[1].bin_centers[1])
-    field_centers2 = @lift($(cfsO)[1].bin_centers[2])
-
-    field_edges1_l = cfsO[][1].bin_centers[1] .-cfsO[][1].lbin/2
-    field_edges2_l = cfsO[][1].bin_centers[2] .-cfsO[][1].lbin/2
-
-    field_edges1_r = cfsO[][1].bin_centers[1] .+cfsO[][1].lbin/2
-    field_edges2_r = cfsO[][1].bin_centers[2] .+cfsO[][1].lbin/2
-    
-    field_C = @lift(Float64.($(cfsO)[1].C))
-    #heatmap!(ax,field_centers1,field_centers2,field_C, alpha=0.2,colormap=:jet,colorrange=(0.0,1))
-    #Colorbar(f[1,2], limits = (0.0, 1), label="Concentration c",colormap=(:jet,0.2))
-
-    heatmap!(ax,field_centers1,field_centers2,field_C, alpha=0.2,colormap=:jet,colorrange=(0.0,2))
-    Colorbar(f[1,2], limits = (0, 2), label="Concentration c",colormap=(:jet,0.2))
-    vlines!(ax,field_edges1_l, color="grey", alpha=0.1)
-    hlines!(ax,field_edges2_l, color="grey", alpha=0.1)
-    vlines!(ax,field_edges1_r, color="grey", alpha=0.1)
-    hlines!(ax,field_edges2_r, color="grey", alpha=0.1)
-    return ax
-end
 
 """
     field_log_magnitude!(f, ax, cpsO, cfsO)
@@ -202,8 +161,6 @@ function field_log_magnitude!(f,ax, cpsO, cfsO)
     
     field_centers1 = @lift($(cfsO)[1].bin_centers[1])
     field_centers2 = @lift($(cfsO)[1].bin_centers[2])
-
-
     
     field_C = @lift(log10.($(cfsO)[1].C))
     heatmap!(ax,field_centers1,field_centers2,field_C, alpha=0.2,colormap=:jet,colorrange=(-4,-2))
@@ -265,127 +222,53 @@ function type_points!(f,ax, cpsO, cfsO)
     y = @lift([p_i.x[2] for p_i in $cpsO])
 
     c = @lift([ p_i.type[1] for p_i in $cpsO])
-    if length(cpsO[][1].x)>2
-        
-        z = @lift([p_i.x[3] for p_i in $cpsO])
-        meshscatter!(ax,x,y,z, color=c)
 
-    else
-        scatter!(ax,x,y, color=c)
+    z = @lift([p_i.x[3] for p_i in $cpsO])
+    meshscatter!(ax,x,y,z, color=c)
 
-    end
+
     return ax
 end
 
 
-"""
-    shape_disks!(f, ax, cpsO, cfsO)
-
-Rigid bodies drawn as circles at their extent points `xe` with radii `re`, coloured by `id`. Requires particle fields `xe`, `re` and `id`.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
 function shape_disks!(f,ax, cpsO, cfsO)
-    c = @lift([ p_i.id[1] for p_i in $cpsO])
-    for j = 1:size(cpsO[][1].xe)[1]
 
-        xes = @lift([p_i.xe[j,1] for p_i in $cpsO] )
+    shapes = @lift filter(p -> p isa Particles.PolarShapeKernel, $cpsO)
+    isempty(shapes[]) && return ax
 
-        yes = @lift([p_i.xe[j,2] for p_i in $cpsO] )
+    c = @lift( [p_i.id for p_i in $shapes for j in eachindex(p_i.xsrel)] )
+    s = @lift( [2*p_i.Rs[j] for p_i in $shapes for j in eachindex(p_i.xsrel)] )
 
-        s = @lift([2*p_i.re[j] for p_i in $cpsO])
-    
-        scatter!(ax,xes,yes, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.5, strokecolor=:black, strokewidth=1)
-    end
+    pts = @lift([Point2f(p_i.x[1] + p_i.xsrel[j], p_i.x[2] + p_i.ysrel[j]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
+
+    scatter!(ax, pts, color=c, markersize=s, marker=Circle, markerspace=:data, alpha=0.7, strokecolor=:black, strokewidth=1)
     return ax
 end
 
 
-
-"""
-    shape_disks_orientation!(f, ax, cpsO, cfsO)
-
-Like [`shape_disks!`](@ref), coloured by the angle of the polarity `p` in the xy-plane.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
 function shape_disks_orientation!(f,ax, cpsO, cfsO)
-    c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $cpsO])
-    for j = 1:size(cpsO[][1].xe)[1]
+    shapes = @lift filter(p -> p isa Particles.PolarShapeKernel, $cpsO)
+    isempty(shapes[]) && return ax
 
-        xes = @lift([p_i.xe[j,1] for p_i in $cpsO] )
+    c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
+    s = @lift( [2*p_i.Rs[j] for p_i in $shapes for j in eachindex(p_i.xsrel)] )
 
-        yes = @lift([p_i.xe[j,2] for p_i in $cpsO] )
+    pts = @lift([Point2f(p_i.x[1] + p_i.xsrel[j], p_i.x[2] + p_i.ysrel[j]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
 
-        s = @lift([2*p_i.re[j] for p_i in $cpsO])
-    
-        scatter!(ax,xes,yes, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.5, strokecolor=:black, strokewidth=1,colormap=:hsv,colorrange=(-pi,pi))
-    end
+    scatter!(ax, pts, color=c, markersize=s, marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1,colormap=:hsv,colorrange=(-pi,pi))
     return ax
 end
 
-"""
-    shape_disks_type!(f, ax, cpsO, cfsO)
-
-Like [`shape_disks!`](@ref), coloured by particle `type`.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
 function shape_disks_type!(f,ax, cpsO, cfsO)
-    c = @lift([ p_i.type[1] for p_i in $cpsO])
-    for j = 1:size(cpsO[][1].xe)[1]
+    shapes = @lift filter(p -> p isa Particles.PolarShapeKernel, $cpsO)
+    isempty(shapes[]) && return ax
 
-        xes = @lift([p_i.xe[j,1] for p_i in $cpsO] )
+    c = @lift([ p_i.type for p_i in $shapes for j in eachindex(p_i.xsrel)])
+    s = @lift( [2*p_i.Rs[j] for p_i in $shapes for j in eachindex(p_i.xsrel)] )
 
-        yes = @lift([p_i.xe[j,2] for p_i in $cpsO] )
+    pts = @lift([Point2f(p_i.x[1] + p_i.xsrel[j], p_i.x[2] + p_i.ysrel[j]) for p_i in $shapes for j in eachindex(p_i.xsrel)])
 
-        s = @lift([2*p_i.re[j] for p_i in $cpsO])
-    
-        scatter!(ax,xes,yes, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.5, strokecolor=:black, strokewidth=1,colormap=Reverse(:seismic))
-    end
-    return ax
-end
-
-"""
-    shape_points!(f, ax, cpsO, cfsO)
-
-Rigid bodies drawn as points at their extent points `xe`, coloured by `id`. Requires particle fields `xe`, `re` and `id`.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
-function shape_points!(f,ax, cpsO, cfsO)
-    c = @lift([ p_i.id[1] for p_i in $cpsO])
-    for j = 1:size(cpsO[][1].xe)[1]
-
-        xes = @lift([p_i.xe[j,1] for p_i in $cpsO] )
-
-        yes = @lift([p_i.xe[j,2] for p_i in $cpsO] )
-
-        s = @lift([p_i.re[1] for p_i in $cpsO])
-    
-        scatter!(ax,xes,yes, color=c)
-    end
-    return ax
-end
-
-
-
-
-"""
-    Swarmalators!(f, ax, cpsO, cfsO)
-
-Positions, coloured by the internal phase `ϕ` (swarmalator models). Requires particle fields `x` and `ϕ`.
-
-Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) in `plot_functions`.
-"""
-function Swarmalators!(f,ax, cpsO, cfsO)
-
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
-
-    c = @lift(angle2range.([ p_i.ϕ[1] for p_i in $cpsO]))
-
-    scatter!(ax,x,y , color=c, colormap=:hsv, colorrange=(0, 2*pi))
+    scatter!(ax, pts, color=c, markersize=s, marker=Circle, markerspace=:data, alpha=0.5, strokecolor=:black, strokewidth=1)
     return ax
 end
 
@@ -422,22 +305,11 @@ function sized_points!(f,ax, cpsO, cfsO)
 
     c = @lift([ p_i.id[1] for p_i in $cpsO])
 
-    
+    z = @lift([p_i.x[3] for p_i in $cpsO])
 
-    if length(cpsO[][1].x)>2
-        
-        z = @lift([p_i.x[3] for p_i in $cpsO])
+    R = @lift([p_i.R[1] for p_i in $cpsO])
 
-        R = @lift([p_i.R[1] for p_i in $cpsO])
-
-        meshscatter!(ax,x,y,z, color=c, markersize =R, transparency=true, colormap=(:viridis,0.2))
-
-
-    else
-        s = @lift([2*p_i.R[1]  for p_i in $cpsO])
-        scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1)
-
-    end
+    meshscatter!(ax,x,y,z, color=c, markersize =R, transparency=true, colormap=(:viridis,0.2))
 
     return ax
 end
@@ -512,6 +384,19 @@ function disks!(f,ax, cpsO, cfsO)
     
     s = @lift([2*p_i.R[1]  for p_i in $cpsO])
     scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1)
+
+    return ax
+end
+
+function disks_outline!(f,ax, cpsO, cfsO)
+
+
+    x = @lift([p_i.x[1] for p_i in $cpsO])
+    y = @lift([p_i.x[2] for p_i in $cpsO])
+
+    
+    s = @lift([2*p_i.R[1]  for p_i in $cpsO])
+    scatter!(ax,x,y, color=:transparent, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1)
 
     return ax
 end
@@ -732,22 +617,12 @@ function type_sized_points!(f,ax, cpsO, cfsO)
 
     c = @lift([ p_i.type[1] for p_i in $cpsO])
 
-    
+    z = @lift([p_i.x[3] for p_i in $cpsO])
 
-    if length(cpsO[][1].x)>2
-        
-        z = @lift([p_i.x[3] for p_i in $cpsO])
+    R = @lift([p_i.R for p_i in $cpsO])
 
-        R = @lift([p_i.R for p_i in $cpsO])
+    meshscatter!(ax,x,y,z, color=c, markersize  =R, transparency=true)
 
-        meshscatter!(ax,x,y,z, color=c, markersize  =R, transparency=true)
-
-
-    else
-        s = @lift([2*p_i.R[1]  for p_i in $cpsO])
-        scatter!(ax,x,y, color=c, markersize =s,marker = Circle, markerspace=:data,alpha=0.7, strokecolor=:black, strokewidth=1)
-
-    end
     return ax
 
 end
@@ -761,27 +636,12 @@ Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) 
 """
 function directors!(f,ax, cpsO, cfsO)
 
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
 
-    
-    if length(cpsO[][1].x)>2
-
-        x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
-        p = @lift([ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
-        c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $cpsO])
-        gen_arrows_3d!(ax, x, p , color=c,  colormap=:hsv,colorrange=(-pi,pi))
+    x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
+    p = @lift([ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
+    c = @lift([ angle(p_i.p[1]+1im*p_i.p[2]) for p_i in $cpsO])
+    gen_arrows_3d!(ax, x, p , color=c,  colormap=:hsv,colorrange=(-pi,pi))
         
-
-
-    else
-        nx = @lift(cos.([ p_i.θ[1] for p_i in $cpsO]))
-        ny = @lift(sin.([ p_i.θ[1] for p_i in $cpsO]))
-        c = @lift(angle2range.([ p_i.θ[1] for p_i in $cpsO]))
-        gen_arrows_2d!(ax, x, y, nx, ny, color=c,  colormap=:hsv,colorrange=(0, 2*pi))
-
-
-    end
     return ax
 
 end
@@ -795,37 +655,17 @@ Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) 
 """
 function nematic_directors!(f,ax, cpsO, cfsO)
 
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
 
-    
-    if length(cpsO[][1].x)>2
+    x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
+    p = @lift([ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
 
-        x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
-        p = @lift([ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
-
-        pmin = @lift(-1*[ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
+    pmin = @lift(-1*[ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])
 
 
-        c = @lift([ angle( exp(angle(p_i.p[1]+1im*p_i.p[2])*2  * 1im)) for p_i in $cpsO])
-        gen_arrows_3d!(ax, x, p , color=c,  colormap=:hsv,colorrange=(-pi,pi))
-        gen_arrows_3d!(ax, x, pmin , color=c,  colormap=:hsv,colorrange=(-pi,pi))
+    c = @lift([ angle( exp(angle(p_i.p[1]+1im*p_i.p[2])*2  * 1im)) for p_i in $cpsO])
+    gen_arrows_3d!(ax, x, p , color=c,  colormap=:hsv,colorrange=(-pi,pi))
+    gen_arrows_3d!(ax, x, pmin , color=c,  colormap=:hsv,colorrange=(-pi,pi))
 
-
-    else
-        nx = @lift(cos.([ p_i.θ[1] for p_i in $cpsO]))
-        ny = @lift(sin.([ p_i.θ[1] for p_i in $cpsO]))
-
-
-        nxmin = @lift(-1*cos.([ p_i.θ[1] for p_i in $cpsO]))
-        nymin = @lift(-1*sin.([ p_i.θ[1] for p_i in $cpsO]))
-
-
-        c = @lift([ angle( exp(angle(p_i.p[1]+1im*p_i.p[2])*2  * 1im)) for p_i in $cpsO])
-        gen_arrows_2d!(ax, x, y, nx, ny, color=c,  colormap=:hsv,colorrange=(0, 2*pi))
-        gen_arrows_2d!(ax, x, y, nxmin, nymin, color=c,  colormap=:hsv,colorrange=(0, 2*pi))
-
-    end
     return ax
 
 end
@@ -839,27 +679,11 @@ Live plot function: pass it to [`Euler_integrator`](@ref JAMS.Euler_integrator) 
 """
 function velocity_vectors!(f,ax,cpsO, cfsO)
 
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
-
-    
-    if length(cpsO[][1].x)>2
-
-        x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
-        v = @lift([ Point3f( p_i.v[1],p_i.v[2],p_i.v[3]) for p_i in $cpsO])
-        c = @lift([ angle(p_i.v[1]+1im*p_i.v[2]) for p_i in $cpsO])
-        gen_arrows_3d!(ax, x, v , color=c,  colormap=:hsv,colorrange=(-pi,pi))
+    x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
+    v = @lift([ Point3f( p_i.v[1],p_i.v[2],p_i.v[3]) for p_i in $cpsO])
+    c = @lift([ angle(p_i.v[1]+1im*p_i.v[2]) for p_i in $cpsO])
+    gen_arrows_3d!(ax, x, v , color=c,  colormap=:hsv,colorrange=(-pi,pi))
         
-
-
-    else
-        vx = @lift([ p_i.v[1] for p_i in $cpsO])
-        vy = @lift([ p_i.v[2] for p_i in $cpsO])
-        c = @lift([ angle(p_i.v[1]+1im*p_i.v[2]) for p_i in $cpsO])
-        gen_arrows_2d!(ax, x, y, vx, vy, color=c, colormap=:hsv,colorrange=(-pi,pi))
-
-
-    end
     return ax
 end
 
@@ -880,67 +704,9 @@ function annotate_v!(f,ax,cpsO, cfsO)
 
     text!(ax, x,y, text=vtext)
 
-
-
-
     return ax
 end
 
-
-
-
-"""
-    angle2range(angle)
-
-Map an angle in radians to the range `[0, 2π)`.
-"""
-function angle2range(angle)
-    if angle>=0
-        return angle % (2*pi)
-    else
-        return angle % (2*pi) + (2*pi)
-    end
-
-end
-
-
-
-# function setup_system_plotting(system_sizes,plot_functions,plotdim ,cpsO,cfsO,tO,fps;res=nothing)
-#     GLMakie.activate!(; focus_on_show=true, title= "GLMakie: JAMs simulation", framerate=fps)
-#     if !isnothing(res)
-#         f = Figure(size=res)
-#     else
-#         f=Figure()
-#     end
-#     title = @lift("t = $($tO)")
-
-#     if !isnothing(plotdim)
-#         plotdim_set = plotdim
-#     else
-#         plotdim_set = length(system_sizes)
-
-#     end
-
-#     if plotdim_set==2
-#         ax = Axis(f[1, 1], xlabel = "x", ylabel="y",  aspect =system_sizes[1]/system_sizes[2], title=title )
-#         xlims!(ax, -system_sizes[1]/2, system_sizes[1]/2)
-#         ylims!(ax,  -system_sizes[2]/2, system_sizes[2]/2)
-
-#     elseif plotdim_set==3
-
-#         ax = Axis3(f[1, 1], xlabel = "x", ylabel="y", zlabel="z",  aspect = (1,system_sizes[2]/system_sizes[1],system_sizes[3]/system_sizes[1]), title=title)
-#         xlims!(ax,  -system_sizes[1]/2, system_sizes[1]/2)
-#         ylims!(ax, -system_sizes[2]/2, system_sizes[2]/2)
-#         zlims!(ax,  -system_sizes[3]/2, system_sizes[3]/2)
-
-#     end
-    
-#     for plot_function in plot_functions
-#        ax=plot_function(f,ax,cpsO,cfsO)
-#     end
-#     display(f)
-#     return f, ax
-# end
 
 
 end

@@ -183,5 +183,139 @@ function stacked_polymers_at_angle(N_in_pol, R, pf, f_eq_stretch_force, L_0; til
     return x, y, radii, pol_ids, ids_in_pol, L, Npols
 
 end
+
+
+function circular_cap(opening_angle, R,lbin)
+
+    Nx = ceil(Int64, 2*R/lbin)
+    Ny = copy(Nx)
+
+    x = collect(0:Nx-1) .* lbin .- R .+ lbin/2
+    y = collect(0:Ny-1) .* lbin .- R .+ lbin/2
+
+    X = zeros(Nx, Ny)
+
+    Y = zeros(Nx, Ny)
+
+    square = zeros(Bool, Nx, Ny)
+
+    for (i, xi)  in pairs(x)
+        for (j,yj) in pairs(y)
+
+            X[i,j] = x[i]
+
+            Y[i,j] = y[j]
+        end
+    end
+
+    angles = atan.(Y,X)
+    
+    square[ (X.^2 + Y.^2 .< (R + lbin/2)^2 )   .*  (X.^2 + Y.^2 .> (R - 1*lbin).^2)   .* ( (angles .< -pi+opening_angle) .| (angles .> pi-opening_angle)  )] .= true
+
+    xk = X[square]
+    yk = Y[square]
+
+    return xk, yk;
+
+end
+
+
+#Polygon constructions using edges
+@kwdef struct Edge
+    x1::Float64
+    y1::Float64
+
+    x2::Float64
+    y2::Float64
+
+    Lx = x2 - x1
+    Ly = y2 - y1
+
+    L = sqrt(Lx^2 + Ly^2)
+end
+
+struct PopulatedEdge
+    xs
+    ys
+end
+
+function place_on_edge(Edge, density)
+
+    N = ceil(Int, Edge.L * density)
+
+    dLx = Edge.Lx/(N-1)
+    dLy = Edge.Ly/(N-1)
+
+    xs = [Edge.x1 + dLx*n for n=0:N]
+
+    ys = [Edge.y1 + dLy*n for n=0:N]
+
+    return PopulatedEdge(xs, ys)
+
+end
+
+struct PopulatedPolygon
+
+    xcom
+    ycom
+
+    xs
+    ys
+
+    xsrel0
+    ysrel0
+
+end
+
+function construct_populated_polygon_from_edges(populated_edges)
+
+    xp = []
+    yp = []
+
+    for (i, populated_edge) in enumerate(populated_edges)
+
+        #Loop clockwise, discard the last point of each populated edge, to avoid duplicates
+        for j in 1:length(populated_edge.xs) - 1
+
+            push!(xp, populated_edge.xs[j])
+            push!(yp, populated_edge.ys[j])
+        end
+
+
+    end
+
+    xcom = mean(xp)
+    ycom = mean(yp)
+
+    xprel = xp .- xcom
+    yprel = yp .- ycom
+
+    return PopulatedPolygon(xcom, ycom, xp, yp, xprel, yprel)
+
+end
+
+#Unique coordinates of the vertices only, ordered counterclockwise
+function construct_populated_polygon(x_vertices, y_vertices, density)
+
+    Nv = length(x_vertices)
+
+    edges = [ Edge(x1 = x_vertices[i], y1 = y_vertices[i], x2 = x_vertices[i+1], y2 = y_vertices[i+1] ) for i=1:Nv-1]
+
+    push!(edges, Edge(x1 = x_vertices[Nv], y1 = y_vertices[Nv], x2 = x_vertices[1], y2 = y_vertices[1]))
+
+    populated_edges = [ place_on_edge(edges[i], density) for i in eachindex(edges)]
+
+
+    populated_polygon = construct_populated_polygon_from_edges(populated_edges)
+
+    return populated_polygon
+end
+
+
+
+
+
+
+
 #Module end
 end

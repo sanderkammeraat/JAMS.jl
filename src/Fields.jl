@@ -8,7 +8,7 @@ using SparseArrays
 
 abstract type Field end
 
-struct ScalarField2d{Tbc}<:Field
+struct Scalar2d{Tbc}<:Field
     id::Int64
     type::Int64
     bin_centers::Tbc
@@ -17,8 +17,6 @@ struct ScalarField2d{Tbc}<:Field
     Cf::Matrix{Float64}
     lbin::Float64
 end
-
-
 
 
 #module end

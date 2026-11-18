@@ -865,3 +865,89 @@ function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system,
     return p_i
 
 end
+
+
+@kwdef struct exp_repulsion{TA, Ta} <: PairForce
+    ontypes::Union{Int64,Vector{Int64}}
+    Aarray::TA
+    aarray::Ta
+end
+
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles, system, force::exp_repulsion)
+
+    if p_i.type in force.ontypes && p_j.type in force.ontypes
+
+        A = a = force.Aarray[get_param_ind(force.ontypes, p_i.type),get_param_ind(force.ontypes, p_j.type)]
+
+        a = force.aarray[get_param_ind(force.ontypes, p_i.type),get_param_ind(force.ontypes, p_j.type)]
+
+        p_i.f += -A * exp(-dxn/a) * dx/dxn
+
+    end
+    return p_i
+
+end
+
+
+struct shape_repulsive_soft_disk{T1} <: PairForce
+    ontypes::Union{Int64,Vector{Int64}}
+    karray::T1
+end
+
+
+function contribute_pair_force!(p_i, p_j, dx, dxn, t, dt,rngs_particles ,system, force::shape_repulsive_soft_disk)
+
+    if p_i.type in force.ontypes && p_j.type in force.ontypes
+
+        xsrel_i = p_i.xsrel
+        ysrel_i = p_i.ysrel
+
+        xsrel_j = p_j.xsrel
+        ysrel_j = p_j.ysrel
+
+        Rs_i = p_i.Rs
+
+        Rs_j = p_j.Rs
+
+        fx=0.0
+        fy=0.0
+        Tz=0.0
+        counter = 0
+        k = force.karray[get_param_ind(force.ontypes,p_i.type),get_param_ind(force.ontypes,p_j.type)]
+        for ni in eachindex(xsrel_i)
+
+            for nj in eachindex(xsrel_j)
+                
+                d2R = Rs_i[ni] + Rs_j[nj]
+
+                drs = SVector{3, Float64}(dx[1]+xsrel_j[nj] -xsrel_i[ni] , dx[2]+ysrel_j[nj] -ysrel_i[ni], 0.)
+
+                drsn = norm(drs)
+
+                if drsn<d2R
+
+                    drx_normalized = drs[1]/drsn
+                    dry_normalized = drs[2]/drsn
+                    fx_ninj = k * (drsn - d2R) * drx_normalized
+                    fy_ninj = k * (drsn - d2R) * dry_normalized
+
+                    fx += fx_ninj
+                    fy += fy_ninj
+
+                    Tz +=  (xsrel_i[ni] + drx_normalized * Rs_i[ni]) * fy_ninj
+                    Tz += -(ysrel_i[ni] + dry_normalized * Rs_i[ni] ) * fx_ninj
+
+                    counter+=1
+
+                end
+            end
+        end
+
+        if counter>0
+            p_i.f += SVector{3, Float64}(fx, fy, 0.)
+            p_i.T += SVector{3, Float64}(0., 0., Tz)
+        end
+    end
+    return p_i
+
+end

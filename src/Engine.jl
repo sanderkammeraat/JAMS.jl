@@ -4,23 +4,6 @@
     return p_i
 end
 
-@inline function periodic!(p_i::Particles.RigidBody, systemsizes)
-
-p_i.x = mod.(p_i.x .+ systemsizes ./ 2, systemsizes) .- systemsizes ./ 2
-    #Deliberately not updating the extend points
-    # for j=1:size(p_i.xe)[1]
-    #     for (i, xi) in pairs(p_i.xe[j,:])
-
-    #         if xi<-systemsizes[i]/2
-    #             p_i.xe[j,i] = xi + systemsizes[i]
-    #         elseif xi>=systemsizes[i]/2
-    #             p_i.xe[j,i] = xi - systemsizes[i]
-    #         end
-    #     end
-    
-    # end    
-    return p_i
-end
 
 #Initialize unwrapped coordinates to save the user the hassle to set equal to the initial wrapped coordinates
 function init_unwrap!(p_i, t)
@@ -526,7 +509,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
             if Nfield>0
                 for i in eachindex(current_particle_state)
                     p_i = PRow(current_particle_state, i)
-                    Forces.contribute_field_forces!(p_i, current_field_state,field_forces, t, dt,system,rngs_particles)
+                    contribute_field_forces!(p_i, current_field_state,field_forces, t, dt,system,rngs_particles)
                 end
             end
 
@@ -601,7 +584,7 @@ function Euler_integrator(system, dt, t_stop; seed=nothing, Tsave=nothing, save_
                 field_i = current_field_state[i]
 
                 for dofevolver in field_dofevolvers
-                    field_i=evolve_field!(field_i, t, dt, dofevolver)
+                    field_i=DOFevolvers.evolve_field!(field_i, t, dt, dofevolver)
                 end
             end
 

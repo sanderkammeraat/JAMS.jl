@@ -100,7 +100,27 @@ function evolve_locally!(p_i, t, dt, dofevolver::overdamped_pqT_xyc)
     return p_i
 end
 
+@kwdef struct rigid_xsrel_ysrel<:LocalDOFevolver
+    ontypes::Union{Int64,Vector{Int64}}
+end
+function evolve_locally!(p_i, t, dt, dofevolver::rigid_xsrel_ysrel)
 
+    if p_i.type in dofevolver.ontypes
+
+        px = p_i.p[1]
+        py = p_i.p[2]
+
+        #Get sub particle coordinates
+        xsrel0 = p_i.xsrel0
+        ysrel0 = p_i.ysrel0
+
+        #Rotate according to com particle polarity
+        p_i.xsrel =  xsrel0 .* px .- ysrel0 .* py
+        p_i.ysrel =  xsrel0 .* py .+ ysrel0 .* px
+
+    end
+    return p_i
+end
 
 
 @kwdef struct overdamped_deform<:LocalDOFevolver

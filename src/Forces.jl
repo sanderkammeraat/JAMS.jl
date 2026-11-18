@@ -4,6 +4,7 @@ using LinearAlgebra
 using Distributions
 using Random
 using SparseArrays
+using ..JAMS: minimal_image_difference
 """
     Force
 
@@ -55,11 +56,6 @@ must only change `p_i`.
 """
 abstract type PairForce <:Force end
 include("Forces/Pair.jl")
-
-
-
-
-
 
 """
     FieldForce <: Force

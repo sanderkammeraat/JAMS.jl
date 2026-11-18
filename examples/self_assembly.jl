@@ -9,8 +9,6 @@ function custom_sized_points!(f,ax, cpsO, cfsO)
     y = @lift([p_i.x[2] for p_i in $cpsO])
 
     c = @lift([ p_i.id[1] for p_i in $cpsO])
-
-
         
     z = @lift([p_i.x[3] for p_i in $cpsO])
 
@@ -25,11 +23,6 @@ end
 
 
 function custom_directors!(f,ax, cpsO, cfsO)
-
-    x = @lift([p_i.x[1] for p_i in $cpsO])
-    y = @lift([p_i.x[2] for p_i in $cpsO])
-
-    
 
     x = @lift([ Point3f( p_i.x[1],p_i.x[2],p_i.x[3]) for p_i in $cpsO])
     p = @lift([ Point3f( p_i.p[1],p_i.p[2],p_i.p[3]) for p_i in $cpsO])

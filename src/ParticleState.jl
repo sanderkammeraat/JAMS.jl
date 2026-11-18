@@ -1,6 +1,8 @@
 
 # For single particle type, we can use StructArrays, which should eventually allow a GPU port. For multiple particle type mix, we need to fallback to union spltting. 
 # We define the particle state function to handle this automatically for the user.
+# Use p_i =  PRow(current_particle_state, i) to receive a version of p_i that can be mutated. 
+# use p_j = current_field_state[j] to get an unmutable version, e.g. for pair forces.
 
 export ParticleState
 
@@ -19,7 +21,7 @@ function ParticleState(particles::AbstractVector)
     isempty(particles) && error("JAMS: ParticleState needs at least one particle.")
     Ts = unique(typeof.(particles))
     length(Ts) == 1 && return StructArray(convert(Vector{only(Ts)}, particles))
-    length(Ts) > 4 && @warn "JAMS: mixing $(length(Ts)) particle types. Keep in mind that Julia stops union-splitting for more than 4 types and the simulation becomes much slower."
+    length(Ts) > 4 && @warn "JAMS: mixing $(length(Ts)) particle types. Keep in mind that Julia stops union-splitting for more than 4 particle types (this s not about type field in particles) and the simulation becomes much slower."
     return convert(Vector{Union{Ts...}}, particles)
 end
 
@@ -48,7 +50,7 @@ end
     return v
 end
 
-#StructArray comes with its internal ability to set (change) immutable fields of structs. For the fallback option, we need to something similar: return a new struct with the field updated.
+#StructArray comes with its internal ability to set, that is change, immutable fields of structs. For the fallback option, we need something similar: return a new struct with the field updated.
 #It is generated, so it acts as if we wrote this manually for every particle type separately
 @generated function with_field(p::T, ::Val{s}, v) where {T,s}
     s in fieldnames(T) || return :(error("JAMS: particle type ", $T, " has no field ", $(QuoteNode(s))))

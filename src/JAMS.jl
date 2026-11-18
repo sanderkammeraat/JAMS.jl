@@ -24,13 +24,13 @@ function GLMakie_window_closeall end
 
 include("Particles.jl")
 include("ParticleState.jl")
+include("NeighbourFinding.jl")
 include("Forces.jl")
 include("Fields.jl")
 include("FieldUpdaters.jl")
 include("Save.jl")
 include("LPlot.jl")
 include("Initial.jl")
-include("NeighbourFinding.jl")
 include("DOFevolvers.jl")
 
 
